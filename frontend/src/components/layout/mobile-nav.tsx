@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Brand } from "./brand";
 import { SidebarNav } from "./sidebar-nav";
+import { SignOutButton } from "./sign-out-button";
 
 /** Menú lateral desplegable para celulares. */
 export function MobileNav() {
@@ -24,6 +25,7 @@ export function MobileNav() {
           <Brand />
         </div>
         <SidebarNav onNavigate={() => setOpen(false)} />
+        <SignOutButton />
       </SheetContent>
     </Sheet>
   );

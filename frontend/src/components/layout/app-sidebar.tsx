@@ -1,5 +1,6 @@
 import { Brand } from "./brand";
 import { SidebarNav } from "./sidebar-nav";
+import { SignOutButton } from "./sign-out-button";
 
 /** Sidebar fija para pantallas medianas en adelante. */
 export function AppSidebar() {
@@ -9,6 +10,7 @@ export function AppSidebar() {
         <Brand />
       </div>
       <SidebarNav />
+      <SignOutButton />
     </aside>
   );
 }
