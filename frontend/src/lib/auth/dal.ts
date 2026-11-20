@@ -109,6 +109,43 @@ export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null
   };
 });
 
+export type BusinessMember = {
+  id: string;
+  userId: string | null;
+  role: MemberRole;
+  displayName: string;
+  color: string;
+  isBookable: boolean;
+};
+
+/** Profesionales activos del negocio del usuario actual (dueño primero). */
+export const getBusinessMembers = cache(async (): Promise<BusinessMember[]> => {
+  const current = await getCurrentBusiness();
+  if (!current) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("business_members")
+    .select("id, user_id, role, display_name, color, is_bookable, created_at")
+    .eq("business_id", current.business.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(`No se pudo leer el equipo: ${error.message}`);
+
+  const roleOrder: Record<MemberRole, number> = { owner: 0, admin: 1, staff: 2 };
+  return data
+    .map((m) => ({
+      id: m.id,
+      userId: m.user_id,
+      role: m.role,
+      displayName: m.display_name,
+      color: m.color,
+      isBookable: m.is_bookable,
+    }))
+    .sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
+});
+
 /**
  * Para páginas del panel: exige sesión y negocio.
  * Sin sesión → /login · sin negocio → /onboarding.

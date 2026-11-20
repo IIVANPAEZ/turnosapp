@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
+import { updateMemberSchema, type UpdateMemberInput } from "./members";
 import { onboardingSchema, type OnboardingInput } from "./schemas";
 import { slugProblem } from "./slug";
 
@@ -71,4 +72,37 @@ export async function createBusiness(input: OnboardingInput): Promise<CreateBusi
 
   revalidatePath("/", "layout");
   redirect("/dashboard");
+}
+
+export type UpdateMemberResult = { ok: true; message: string } | { ok: false; error: string };
+
+/**
+ * Edita nombre visible y color de agenda de un profesional.
+ * RLS permite editarse a uno mismo, o a cualquiera del negocio si sos dueño/admin;
+ * los permisos por columna impiden tocar rol, negocio o usuario.
+ */
+export async function updateMember(input: UpdateMemberInput): Promise<UpdateMemberResult> {
+  const parsed = updateMemberSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Revisá los datos del formulario." };
+  const { memberId, displayName, color } = parsed.data;
+
+  if (!(await getCurrentUser())) redirect("/login?next=/dashboard/profesionales");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("business_members")
+    .update({ display_name: displayName, color })
+    .eq("id", memberId)
+    .select("id");
+
+  if (error) {
+    console.error("[profesionales] update:", error.code, error.message);
+    return { ok: false, error: "No pudimos guardar los cambios. Probá de nuevo." };
+  }
+  // Si RLS no permite la edición, no hay error: simplemente se modifican 0 filas.
+  if (!data?.length) return { ok: false, error: "No tenés permiso para editar a este profesional." };
+
+  // Refresca el panel completo (el header muestra nombre y color).
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, message: "Cambios guardados." };
 }
