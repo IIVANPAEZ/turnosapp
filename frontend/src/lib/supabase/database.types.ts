@@ -133,6 +133,56 @@ export type Database = {
         }
         Relationships: []
       }
+      services: {
+        Row: {
+          business_id: string
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          price_type: Database["public"]["Enums"]["price_type"]
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          description?: string | null
+          duration_minutes: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          price_type?: Database["public"]["Enums"]["price_type"]
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          price_type?: Database["public"]["Enums"]["price_type"]
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -154,6 +204,7 @@ export type Database = {
     Enums: {
       business_category: "beauty" | "health" | "other"
       member_role: "owner" | "admin" | "staff"
+      price_type: "fixed" | "from"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -283,6 +334,7 @@ export const Constants = {
     Enums: {
       business_category: ["beauty", "health", "other"],
       member_role: ["owner", "admin", "staff"],
+      price_type: ["fixed", "from"],
     },
   },
 } as const
