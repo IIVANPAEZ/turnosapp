@@ -128,17 +128,26 @@ export function OnboardingForm({ defaultWhatsapp }: OnboardingFormProps) {
                 <label
                   key={c.value}
                   className={cn(
-                    "flex cursor-pointer flex-col gap-1 rounded-xl border p-3 transition-colors",
-                    "has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                    selected ? "border-primary bg-primary/5" : "hover:bg-muted/50",
+                    "flex cursor-pointer flex-col gap-2.5 rounded-xl border bg-inset p-3.5 transition-colors",
+                    "has-focus-visible:ring-3 has-focus-visible:ring-ring/40",
+                    selected
+                      ? "border-primary/70 bg-primary-soft"
+                      : "hover:border-line-strong hover:bg-card",
                   )}
                 >
                   <input type="radio" value={c.value} className="sr-only" {...register("category")} />
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    <Icon className={cn("size-4", selected ? "text-primary" : "text-muted-foreground")} />
-                    {c.label}
+                  <span
+                    className={cn(
+                      "flex size-8 items-center justify-center rounded-lg transition-colors",
+                      selected ? "bg-primary text-primary-foreground" : "bg-raised text-muted-foreground",
+                    )}
+                  >
+                    <Icon className="size-4" />
                   </span>
-                  <span className="text-xs leading-snug text-muted-foreground">{c.hint}</span>
+                  <span>
+                    <span className="block text-sm font-medium">{c.label}</span>
+                    <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{c.hint}</span>
+                  </span>
                 </label>
               );
             })}
@@ -148,14 +157,14 @@ export function OnboardingForm({ defaultWhatsapp }: OnboardingFormProps) {
 
         <Field data-invalid={!!errors.slug || slugTaken}>
           <FieldLabel htmlFor="slug">Dirección de tu página</FieldLabel>
-          <div className="flex items-center rounded-lg border border-input focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
-            <span className="select-none pl-2.5 text-sm text-muted-foreground">{PUBLIC_SITE_DOMAIN}/</span>
+          <div className="flex items-center rounded-lg border border-input bg-inset transition-colors hover:border-line-strong focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
+            <span className="select-none pl-3 font-mono text-[13px] text-faint">{PUBLIC_SITE_DOMAIN}/</span>
             <Input
               id="slug"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="border-0 pl-0.5 focus-visible:ring-0"
+              className="border-0 bg-transparent pl-0.5 font-mono text-[13px] hover:border-0 focus-visible:ring-0 md:text-[13px]"
               aria-invalid={!!errors.slug || slugTaken}
               {...register("slug", {
                 onChange: (e) => {
@@ -164,7 +173,7 @@ export function OnboardingForm({ defaultWhatsapp }: OnboardingFormProps) {
                   const clean = e.target.value
                     .toLowerCase()
                     .normalize("NFD")
-                    .replace(/[̀-ͯ]/g, "")
+                    .replace(/[\u0300-\u036f]/g, "")
                     .replace(/[^a-z0-9-]/g, "-");
                   if (clean !== e.target.value) setValue("slug", clean);
                 },
@@ -237,7 +246,7 @@ function SlugHint({ status, slug }: { status: SlugStatus; slug: string }) {
       );
     case "available":
       return (
-        <FieldDescription className="flex items-center gap-1.5 text-emerald-600">
+        <FieldDescription className="flex items-center gap-1.5 text-success">
           <CircleCheck className="size-3.5" /> Disponible
         </FieldDescription>
       );

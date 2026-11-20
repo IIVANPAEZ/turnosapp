@@ -24,7 +24,7 @@ export type NavSection = {
 
 export const dashboardNav: NavSection[] = [
   {
-    label: "Principal",
+    label: "Tu día",
     items: [
       { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
       { href: "/dashboard/agenda", label: "Agenda", icon: CalendarDays },

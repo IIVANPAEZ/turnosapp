@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: LayoutProps<"/dashboard">)
             </Suspense>
           }
         />
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
     </div>
   );

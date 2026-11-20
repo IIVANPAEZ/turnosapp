@@ -106,7 +106,7 @@ export function MemberCard({ member, canEdit, isMe }: MemberCardProps) {
         </div>
 
         {saved && !editing && (
-          <p className="flex items-center gap-1.5 text-sm text-emerald-600">
+          <p className="flex items-center gap-1.5 text-sm text-success">
             <Check className="size-4" /> Cambios guardados
           </p>
         )}
@@ -146,8 +146,8 @@ export function MemberCard({ member, canEdit, isMe }: MemberCardProps) {
                         key={c.value}
                         title={c.label}
                         className={cn(
-                          "flex size-9 cursor-pointer items-center justify-center rounded-full ring-offset-2 transition",
-                          "has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+                          "flex size-9 cursor-pointer items-center justify-center rounded-full ring-offset-2 ring-offset-card transition hover:scale-105",
+                          "has-focus-visible:ring-2 has-focus-visible:ring-ring",
                           selected && "ring-2 ring-foreground",
                         )}
                         style={{ backgroundColor: c.value }}
@@ -183,7 +183,7 @@ function Avatar({ name, color }: { name: string; color: string }) {
   const initial = name?.trim().charAt(0).toUpperCase() || "?";
   return (
     <div
-      className="flex size-12 shrink-0 items-center justify-center rounded-full text-lg font-semibold text-white transition-colors"
+      className="flex size-12 shrink-0 items-center justify-center rounded-full text-lg font-semibold text-white ring-2 ring-card outline outline-line-strong transition-colors"
       style={{ backgroundColor: color }}
       aria-hidden="true"
     >

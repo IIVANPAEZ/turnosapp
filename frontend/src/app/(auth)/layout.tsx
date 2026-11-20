@@ -1,14 +1,16 @@
-import Link from "next/link";
-import { Brand } from "@/components/layout/brand";
+import { BrandHero } from "@/components/brand-hero";
 
-/** Layout de las pantallas de acceso: tarjeta centrada sobre fondo claro. */
+/**
+ * Layout de las pantallas de acceso: panel de marca + formulario.
+ * Celular: marca arriba, formulario abajo. Escritorio: lado a lado.
+ */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-slate-50 px-4 py-10">
-      <Link href="/" aria-label="Ir al inicio">
-        <Brand tone="light" />
-      </Link>
-      <div className="w-full max-w-sm">{children}</div>
+    <main className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
+      <BrandHero className="border-b lg:border-r lg:border-b-0" />
+      <div className="flex items-start justify-center px-6 py-10 sm:px-10 lg:items-center lg:py-16">
+        <div className="w-full max-w-sm">{children}</div>
+      </div>
     </main>
   );
 }

@@ -9,10 +9,10 @@ export const metadata: Metadata = { title: "Profesionales" };
 
 export default function ProfessionalsPage() {
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Equipo</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Equipo</h2>
           <p className="text-sm text-muted-foreground">
             Las personas que atienden en tu negocio y reciben turnos.
           </p>
@@ -53,11 +53,11 @@ async function MembersList() {
 
 function MembersSkeleton() {
   return (
-    <div className="flex animate-pulse items-center gap-4 rounded-xl border bg-white p-6" aria-busy="true">
-      <div className="size-12 rounded-full bg-slate-200" />
+    <div className="flex animate-pulse items-center gap-4 rounded-xl bg-card p-5 ring-1 ring-foreground/[0.07]" aria-busy="true">
+      <div className="size-12 rounded-full bg-raised" />
       <div className="flex flex-1 flex-col gap-2">
-        <div className="h-4 w-40 rounded bg-slate-200" />
-        <div className="h-3 w-24 rounded bg-slate-100" />
+        <div className="h-4 w-40 rounded bg-raised" />
+        <div className="h-3 w-24 rounded bg-raised/60" />
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ export const RESERVED_SLUGS = new Set([
 export function slugify(text: string): string {
   return text
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // quita tildes
+    .replace(/[\u0300-\u036f]/g, "") // quita tildes
     .toLowerCase()
     .replace(/ñ/g, "n")
     .replace(/[^a-z0-9]+/g, "-")

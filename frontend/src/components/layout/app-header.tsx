@@ -11,7 +11,6 @@ function formatToday() {
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
     timeZone: DEFAULT_TIMEZONE,
   });
 }
@@ -30,15 +29,15 @@ export function AppHeader({ account }: AppHeaderProps) {
   const today = useSyncExternalStore(noopSubscribe, formatToday, () => "");
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b bg-white px-4 md:px-8">
-      <div className="flex items-center gap-2">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b px-4 md:px-8">
+      <div className="flex min-w-0 items-center gap-2">
         <MobileNav />
-        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-semibold leading-tight tracking-tight">{title}</h1>
+          <p className="h-4 text-xs leading-4 first-letter:uppercase text-muted-foreground">{today}</p>
+        </div>
       </div>
-      <div className="flex min-w-0 items-center gap-4">
-        <p className="hidden text-[13px] capitalize text-muted-foreground lg:block">{today}</p>
-        {account}
-      </div>
+      {account}
     </header>
   );
 }

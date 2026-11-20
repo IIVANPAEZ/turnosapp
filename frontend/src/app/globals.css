@@ -4,12 +4,34 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * TurnosApp · sistema visual
+ * Dirección: oscuro grafito + acento ámbar ("tierra colorada al atardecer").
+ * Tipografía: Space Grotesk (interfaz y títulos) + JetBrains Mono (horas y montos).
+ * Profundidad: capas por luminosidad + bordes de baja opacidad (sin sombras fuertes).
+ * Detalles en .interface-design/system.md
+ */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-grotesk);
+  --font-heading: var(--font-grotesk);
+  --font-mono: var(--font-jetbrains);
+
+  /* Tokens propios del producto */
+  --color-inset: var(--inset);
+  --color-raised: var(--raised);
+  --color-faint: var(--faint);
+  --color-line-strong: var(--line-strong);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-now: var(--now);
+  --color-primary-soft: var(--primary-soft);
+
+  /* Tokens de shadcn */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,73 +70,69 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.546 0.245 262.881);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.623 0.214 259.815);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
+/* La app es solo oscura: el mismo set aplica a :root y a .dark. */
+:root,
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+
+  /* --- Paleta base (nombres del producto) --- */
+  --carbon: #121417;        /* fondo: la "mesa" donde se apoya todo */
+  --carbon-hondo: #0d0f11;  /* hundido: campos, tira del día */
+  --carbon-1: #1a1d21;      /* primera capa: tarjetas */
+  --carbon-2: #22262b;      /* segunda capa: menús, ítem activo */
+  --tiza: #eef0f2;          /* texto principal */
+  --tiza-2: #cdd2d7;        /* texto secundario fuerte */
+  --humo: #959ca5;          /* texto de apoyo */
+  --ceniza: #5f666e;        /* metadatos, placeholders */
+  --ambar: #f2a93b;         /* acento único */
+  --ambar-tinta: #1d1206;   /* texto sobre ámbar */
+  --celeste-ahora: #7dd3fc; /* marca de "ahora" en la tira del día */
+
+  /* --- Tokens propios --- */
+  --inset: var(--carbon-hondo);
+  --raised: var(--carbon-2);
+  --faint: var(--ceniza);
+  --line-strong: rgb(220 230 240 / 0.16);
+  --success: #86d9a0;
+  --success-soft: rgb(134 217 160 / 0.12);
+  --warning: #f5c56b;
+  --warning-soft: rgb(245 197 107 / 0.12);
+  --now: var(--celeste-ahora);
+  --primary-soft: rgb(242 169 59 / 0.12);
+
+  /* --- Tokens de shadcn --- */
+  --background: var(--carbon);
+  --foreground: var(--tiza);
+  --card: var(--carbon-1);
+  --card-foreground: var(--tiza);
+  --popover: var(--carbon-2);
+  --popover-foreground: var(--tiza);
+  --primary: var(--ambar);
+  --primary-foreground: var(--ambar-tinta);
+  --secondary: var(--carbon-2);
+  --secondary-foreground: var(--tiza-2);
+  --muted: var(--carbon-1);
+  --muted-foreground: var(--humo);
+  --accent: var(--carbon-2);
+  --accent-foreground: var(--tiza);
+  --destructive: #f87171;
+  --border: rgb(220 230 240 / 0.08);
+  --input: rgb(220 230 240 / 0.12);
+  --ring: var(--ambar);
+  --chart-1: var(--ambar);
+  --chart-2: #7dd3fc;
+  --chart-3: #86d9a0;
+  --chart-4: #c4b5fd;
+  --chart-5: var(--humo);
+  --radius: 0.625rem;
+  --sidebar: var(--carbon);
+  --sidebar-foreground: var(--tiza);
+  --sidebar-primary: var(--ambar);
+  --sidebar-primary-foreground: var(--ambar-tinta);
+  --sidebar-accent: var(--carbon-2);
+  --sidebar-accent-foreground: var(--tiza);
+  --sidebar-border: rgb(220 230 240 / 0.08);
+  --sidebar-ring: var(--ambar);
 }
 
 @layer base {
@@ -126,5 +144,22 @@
   }
   html {
     @apply font-sans;
+  }
+  ::selection {
+    background: rgb(242 169 59 / 0.3);
+  }
+}
+
+@layer utilities {
+  /* Números alineados (horas, montos) */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Resplandor ámbar de las pantallas de marca (login, landing). */
+  .glow-ambar {
+    background:
+      radial-gradient(120% 80% at 0% 0%, rgb(242 169 59 / 0.22) 0%, transparent 60%),
+      radial-gradient(90% 60% at 100% 100%, rgb(125 211 252 / 0.06) 0%, transparent 70%),
+      var(--carbon);
   }
 }

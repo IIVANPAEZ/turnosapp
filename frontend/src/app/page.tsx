@@ -1,22 +1,36 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { BrandHero } from "@/components/brand-hero";
 import { Button } from "@/components/ui/button";
-import { APP_NAME } from "@/lib/config";
 
-// Landing provisoria. La página de marketing real se hace más adelante.
+// Landing provisoria: marca + accesos. La página de marketing real se hace más adelante.
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-slate-50 px-4 text-center">
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{APP_NAME}</h1>
-      <p className="max-w-md text-muted-foreground">
-        Organizá tus turnos, servicios, clientes e ingresos desde un solo lugar.
-      </p>
-      <div className="flex w-full max-w-xs flex-col gap-2 sm:max-w-none sm:flex-row sm:justify-center">
-        <Button render={<Link href="/registro" />} nativeButton={false} size="lg">
-          Crear cuenta gratis
-        </Button>
-        <Button render={<Link href="/login" />} nativeButton={false} size="lg" variant="outline">
-          Ingresar
-        </Button>
+    <main className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
+      <BrandHero className="border-b lg:border-r lg:border-b-0" />
+      <div className="flex items-start justify-center px-6 py-10 sm:px-10 lg:items-center">
+        <div className="flex w-full max-w-sm flex-col gap-6">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Empezá gratis</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Configurás tu negocio en 2 minutos y compartís tu link de reservas.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <Button render={<Link href="/registro" />} nativeButton={false} size="lg" className="h-11 text-[15px]">
+              Crear cuenta gratis <ArrowRight data-icon="inline-end" />
+            </Button>
+            <Button
+              render={<Link href="/login" />}
+              nativeButton={false}
+              size="lg"
+              variant="outline"
+              className="h-11 text-[15px]"
+            >
+              Ya tengo cuenta
+            </Button>
+          </div>
+        </div>
       </div>
     </main>
   );

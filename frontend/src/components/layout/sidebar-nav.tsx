@@ -9,10 +9,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const active = findActiveItem(usePathname());
 
   return (
-    <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
+    <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-3">
       {dashboardNav.map((section) => (
         <div key={section.label}>
-          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
+          <p className="mb-1.5 px-2.5 text-[10.5px] font-medium tracking-[0.12em] text-faint uppercase">
             {section.label}
           </p>
           <div className="space-y-0.5">
@@ -26,14 +26,18 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                   onClick={onNavigate}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors",
+                    "group flex items-center gap-3 rounded-lg px-2.5 py-2 text-[13.5px] transition-colors",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                      : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
+                      ? "bg-raised font-medium text-foreground"
+                      : "text-muted-foreground hover:bg-card hover:text-foreground",
                   )}
                 >
-                  <Icon className="size-[18px]" strokeWidth={isActive ? 2 : 1.5} />
-                  {item.label}
+                  <Icon
+                    className={cn("size-4.25", isActive ? "text-primary" : "text-faint group-hover:text-muted-foreground")}
+                    strokeWidth={isActive ? 2.1 : 1.7}
+                  />
+                  <span className="flex-1">{item.label}</span>
+                  {isActive && <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />}
                 </Link>
               );
             })}

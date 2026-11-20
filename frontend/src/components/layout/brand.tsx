@@ -1,28 +1,20 @@
 import { CalendarCheck } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/config";
 
 type BrandProps = {
-  /** "dark": sobre el sidebar oscuro (default). "light": sobre fondos claros. */
-  tone?: "dark" | "light";
+  /** Línea debajo del nombre (ej. el nombre del negocio). */
+  subtitle?: React.ReactNode;
 };
 
-export function Brand({ tone = "dark" }: BrandProps) {
+export function Brand({ subtitle = "Gestión de turnos" }: BrandProps) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-        <CalendarCheck className="size-[18px]" />
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_0_1px_rgb(242_169_59/0.4),0_6px_20px_-6px_rgb(242_169_59/0.5)]">
+        <CalendarCheck className="size-4.5" strokeWidth={2.25} />
       </div>
-      <div>
-        <p
-          className={cn(
-            "text-[15px] font-semibold leading-tight tracking-tight",
-            tone === "dark" ? "text-white" : "text-slate-900",
-          )}
-        >
-          {APP_NAME}
-        </p>
-        <p className="text-[11px] leading-tight text-slate-500">Gestión de turnos</p>
+      <div className="min-w-0">
+        <p className="text-[15px] font-semibold leading-tight tracking-tight">{APP_NAME}</p>
+        <div className="truncate text-[11.5px] leading-tight text-muted-foreground">{subtitle}</div>
       </div>
     </div>
   );

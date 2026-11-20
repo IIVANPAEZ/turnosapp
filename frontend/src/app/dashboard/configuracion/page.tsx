@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Configuración" };
 export default function Page() {
   return (
     <PagePlaceholder
-      sprint="Sprint 1"
+      sprint="Sprint 2"
       description="Nombre comercial, descripción, categoría, teléfono, dirección, logo, URL pública y zona horaria."
     />
   );
