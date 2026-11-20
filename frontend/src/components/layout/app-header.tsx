@@ -18,7 +18,12 @@ function formatToday() {
 
 const noopSubscribe = () => () => {};
 
-export function AppHeader() {
+type AppHeaderProps = {
+  /** Bloque de cuenta (negocio + usuario). Viene del servidor ya envuelto en Suspense. */
+  account?: React.ReactNode;
+};
+
+export function AppHeader({ account }: AppHeaderProps) {
   const title = findActiveItem(usePathname())?.label ?? "";
   // La fecha solo se calcula en el navegador: la página se prerenderiza en el build
   // y en el servidor quedaría la fecha de ese momento.
@@ -30,7 +35,10 @@ export function AppHeader() {
         <MobileNav />
         <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
       </div>
-      <p className="hidden text-[13px] capitalize text-muted-foreground sm:block">{today}</p>
+      <div className="flex min-w-0 items-center gap-4">
+        <p className="hidden text-[13px] capitalize text-muted-foreground lg:block">{today}</p>
+        {account}
+      </div>
     </header>
   );
 }

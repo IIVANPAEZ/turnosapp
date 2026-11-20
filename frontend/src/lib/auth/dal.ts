@@ -59,6 +59,27 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
+export type CurrentProfile = {
+  fullName: string | null;
+  phone: string | null;
+};
+
+/** Perfil (nombre y celular) del usuario actual, o null. */
+export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> => {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("full_name, phone")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) throw new Error(`No se pudo leer el perfil: ${error.message}`);
+  return data ? { fullName: data.full_name, phone: data.phone } : null;
+});
+
 /** Negocio del usuario actual (MVP: uno solo) y su rol en él, o null. */
 export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null> => {
   const user = await getCurrentUser();
