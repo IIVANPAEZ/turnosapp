@@ -2,10 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { getCurrentBusiness, getCurrentUser } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
 import { updateMemberSchema, type UpdateMemberInput } from "./members";
-import { onboardingSchema, type OnboardingInput } from "./schemas";
+import {
+  businessSettingsSchema,
+  onboardingSchema,
+  type BusinessSettingsInput,
+  type OnboardingInput,
+} from "./schemas";
 import { slugProblem } from "./slug";
 
 export type SlugAvailability =
@@ -103,6 +108,54 @@ export async function updateMember(input: UpdateMemberInput): Promise<UpdateMemb
   if (!data?.length) return { ok: false, error: "No tenés permiso para editar a este profesional." };
 
   // Refresca el panel completo (el header muestra nombre y color).
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, message: "Cambios guardados." };
+}
+
+export type UpdateBusinessResult =
+  | { ok: true; message: string }
+  | { ok: false; error: string; field?: keyof BusinessSettingsInput };
+
+/** Guarda los datos del negocio actual (pantalla de Configuración). Solo dueño/admin. */
+export async function updateBusiness(input: BusinessSettingsInput): Promise<UpdateBusinessResult> {
+  const parsed = businessSettingsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Revisá los datos del formulario." };
+  const { name, slug, category, description, whatsapp, address, city } = parsed.data;
+
+  const current = await getCurrentBusiness();
+  if (!current) redirect("/login?next=/dashboard/configuracion");
+  if (current.member.role !== "owner" && current.member.role !== "admin") {
+    return { ok: false, error: "Solo el dueño o un administrador pueden cambiar estos datos." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("businesses")
+    .update({
+      name,
+      slug,
+      category,
+      description: description || null,
+      // Por ahora el WhatsApp es también el teléfono de contacto del negocio.
+      whatsapp: whatsapp || null,
+      phone: whatsapp || null,
+      address: address || null,
+      city: city || null,
+    })
+    .eq("id", current.business.id)
+    .select("id");
+
+  if (error) {
+    if (error.code === "23505") {
+      return { ok: false, field: "slug", error: "Esa dirección ya está tomada, elegí otra." };
+    }
+    if (error.code === "23514") return { ok: false, error: "Algún dato no es válido. Revisá el formulario." };
+    console.error("[configuracion] update:", error.code, error.message);
+    return { ok: false, error: "No pudimos guardar los cambios. Probá de nuevo." };
+  }
+  if (!data?.length) return { ok: false, error: "No tenés permiso para editar este negocio." };
+
+  // Refresca todo el panel (sidebar, inicio y esta pantalla).
   revalidatePath("/dashboard", "layout");
   return { ok: true, message: "Cambios guardados." };
 }

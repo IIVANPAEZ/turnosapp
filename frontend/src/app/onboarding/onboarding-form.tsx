@@ -1,30 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Briefcase, CircleAlert, CircleCheck, Loader2, Sparkles, Stethoscope } from "lucide-react";
+import { CircleAlert, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { PUBLIC_SITE_DOMAIN } from "@/lib/config";
-import { checkSlugAvailability, createBusiness, type SlugAvailability } from "@/lib/business/actions";
-import { BUSINESS_CATEGORIES, onboardingSchema } from "@/lib/business/schemas";
-import { slugify, slugProblem } from "@/lib/business/slug";
-
-const CATEGORY_ICONS = { beauty: Sparkles, health: Stethoscope, other: Briefcase } as const;
-
-type SlugStatus = { status: "idle" } | { status: "checking" } | SlugAvailability;
+import { CategoryPicker } from "@/components/business/category-picker";
+import { normalizeSlugInput, SlugHint, SlugInput, useSlugAvailability } from "@/components/business/slug-field";
+import { createBusiness } from "@/lib/business/actions";
+import { onboardingSchema } from "@/lib/business/schemas";
+import { slugify } from "@/lib/business/slug";
 
 type OnboardingFormProps = {
   defaultWhatsapp: string;
@@ -33,10 +21,8 @@ type OnboardingFormProps = {
 export function OnboardingForm({ defaultWhatsapp }: OnboardingFormProps) {
   const [pending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
-  const [slugStatus, setSlugStatus] = useState<SlugStatus>({ status: "idle" });
   // Mientras el usuario no edite la dirección a mano, se genera desde el nombre.
   const [slugEdited, setSlugEdited] = useState(false);
-  const lastCheck = useRef(0);
 
   const {
     register,
@@ -48,47 +34,23 @@ export function OnboardingForm({ defaultWhatsapp }: OnboardingFormProps) {
   } = useForm({
     resolver: zodResolver(onboardingSchema),
     // category sin valor inicial: el usuario tiene que elegir un rubro.
-    defaultValues: {
-      name: "",
-      slug: "",
-      whatsapp: defaultWhatsapp,
-      city: "",
-    },
+    defaultValues: { name: "", slug: "", whatsapp: defaultWhatsapp, city: "" },
   });
 
   const slug = useWatch({ control, name: "slug" });
   const category = useWatch({ control, name: "category" });
-
-  // Verifica la disponibilidad 500 ms después de la última tecla.
-  useEffect(() => {
-    const id = ++lastCheck.current;
-    const timer = setTimeout(async () => {
-      if (!slug || slugProblem(slug)) {
-        setSlugStatus({ status: "idle" });
-        return;
-      }
-      setSlugStatus({ status: "checking" });
-      const result = await checkSlugAvailability(slug);
-      if (id === lastCheck.current) setSlugStatus(result); // ignora respuestas viejas
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [slug]);
+  const slugStatus = useSlugAvailability(slug);
+  const slugTaken = slugStatus.status === "taken";
 
   const onSubmit = handleSubmit((values) => {
     setFormError(null);
     startTransition(async () => {
       const result = await createBusiness(values);
       if (!result) return; // salió bien: la acción redirige al panel
-      if (result.field) {
-        setError(result.field, { message: result.error });
-        if (result.field === "slug") setSlugStatus({ status: "taken" });
-      } else {
-        setFormError(result.error);
-      }
+      if (result.field) setError(result.field, { message: result.error });
+      else setFormError(result.error);
     });
   });
-
-  const slugTaken = slugStatus.status === "taken";
 
   return (
     <form onSubmit={onSubmit} noValidate>
@@ -109,82 +71,29 @@ export function OnboardingForm({ defaultWhatsapp }: OnboardingFormProps) {
             aria-invalid={!!errors.name}
             {...register("name", {
               onChange: (e) => {
-                if (!slugEdited) {
-                  setValue("slug", slugify(e.target.value), { shouldValidate: false });
-                }
+                if (!slugEdited) setValue("slug", slugify(e.target.value), { shouldValidate: false });
               },
             })}
           />
           <FieldError errors={[errors.name]} />
         </Field>
 
-        <FieldSet data-invalid={!!errors.category}>
-          <FieldLegend variant="label">Rubro</FieldLegend>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {BUSINESS_CATEGORIES.map((c) => {
-              const Icon = CATEGORY_ICONS[c.value];
-              const selected = category === c.value;
-              return (
-                <label
-                  key={c.value}
-                  className={cn(
-                    "flex cursor-pointer flex-col gap-2.5 rounded-xl border bg-inset p-3.5 transition-colors",
-                    "has-focus-visible:ring-3 has-focus-visible:ring-ring/40",
-                    selected
-                      ? "border-primary/70 bg-primary-soft"
-                      : "hover:border-line-strong hover:bg-card",
-                  )}
-                >
-                  <input type="radio" value={c.value} className="sr-only" {...register("category")} />
-                  <span
-                    className={cn(
-                      "flex size-8 items-center justify-center rounded-lg transition-colors",
-                      selected ? "bg-primary text-primary-foreground" : "bg-raised text-muted-foreground",
-                    )}
-                  >
-                    <Icon className="size-4" />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-medium">{c.label}</span>
-                    <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{c.hint}</span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-          <FieldError errors={[errors.category]} />
-        </FieldSet>
+        <CategoryPicker value={category} inputProps={register("category")} error={errors.category} />
 
         <Field data-invalid={!!errors.slug || slugTaken}>
           <FieldLabel htmlFor="slug">Dirección de tu página</FieldLabel>
-          <div className="flex items-center rounded-lg border border-input bg-inset transition-colors hover:border-line-strong focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/25">
-            <span className="select-none pl-3 font-mono text-[13px] text-faint">{PUBLIC_SITE_DOMAIN}/</span>
-            <Input
-              id="slug"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              className="border-0 bg-transparent pl-0.5 font-mono text-[13px] hover:border-0 focus-visible:ring-0 md:text-[13px]"
-              aria-invalid={!!errors.slug || slugTaken}
-              {...register("slug", {
-                onChange: (e) => {
-                  setSlugEdited(true);
-                  // Normaliza mientras escribe: minúsculas, sin espacios ni tildes.
-                  const clean = e.target.value
-                    .toLowerCase()
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .replace(/[^a-z0-9-]/g, "-");
-                  if (clean !== e.target.value) setValue("slug", clean);
-                },
-              })}
-            />
-          </div>
-          {errors.slug ? (
-            <FieldError errors={[errors.slug]} />
-          ) : (
-            <SlugHint status={slugStatus} slug={slug} />
-          )}
+          <SlugInput
+            id="slug"
+            aria-invalid={!!errors.slug || slugTaken}
+            {...register("slug", {
+              onChange: (e) => {
+                setSlugEdited(true);
+                const clean = normalizeSlugInput(e.target.value);
+                if (clean !== e.target.value) setValue("slug", clean);
+              },
+            })}
+          />
+          {errors.slug ? <FieldError errors={[errors.slug]} /> : <SlugHint status={slugStatus} slug={slug} />}
         </Field>
 
         <Field data-invalid={!!errors.whatsapp}>
@@ -228,37 +137,4 @@ export function OnboardingForm({ defaultWhatsapp }: OnboardingFormProps) {
       </FieldGroup>
     </form>
   );
-}
-
-function SlugHint({ status, slug }: { status: SlugStatus; slug: string }) {
-  if (!slug) {
-    return <FieldDescription>Se completa sola con el nombre. Podés cambiarla.</FieldDescription>;
-  }
-  const problem = slugProblem(slug);
-  if (problem) return <FieldDescription className="text-destructive">{problem}</FieldDescription>;
-
-  switch (status.status) {
-    case "checking":
-      return (
-        <FieldDescription className="flex items-center gap-1.5">
-          <Loader2 className="size-3.5 animate-spin" /> Verificando…
-        </FieldDescription>
-      );
-    case "available":
-      return (
-        <FieldDescription className="flex items-center gap-1.5 text-success">
-          <CircleCheck className="size-3.5" /> Disponible
-        </FieldDescription>
-      );
-    case "taken":
-      return (
-        <FieldDescription className="flex items-center gap-1.5 text-destructive">
-          <CircleAlert className="size-3.5" /> Ya está tomada, probá con otra
-        </FieldDescription>
-      );
-    case "invalid":
-      return <FieldDescription className="text-destructive">{status.message}</FieldDescription>;
-    default:
-      return <FieldDescription>{PUBLIC_SITE_DOMAIN}/{slug}</FieldDescription>;
-  }
 }

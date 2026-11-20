@@ -109,6 +109,33 @@ export const getCurrentBusiness = cache(async (): Promise<CurrentBusiness | null
   };
 });
 
+export type BusinessSettings = {
+  id: string;
+  name: string;
+  slug: string;
+  category: BusinessCategory;
+  description: string | null;
+  whatsapp: string | null;
+  address: string | null;
+  city: string | null;
+};
+
+/** Datos editables del negocio actual (pantalla de Configuración). */
+export const getBusinessSettings = cache(async (): Promise<BusinessSettings | null> => {
+  const current = await getCurrentBusiness();
+  if (!current) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("businesses")
+    .select("id, name, slug, category, description, whatsapp, address, city")
+    .eq("id", current.business.id)
+    .single();
+
+  if (error) throw new Error(`No se pudo leer el negocio: ${error.message}`);
+  return data;
+});
+
 export type BusinessMember = {
   id: string;
   userId: string | null;
