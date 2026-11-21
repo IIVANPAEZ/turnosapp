@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ChevronDown, Clock } from "lucide-react";
+import { ChevronDown, Clock, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/appointments/status";
 import type { AgendaAppointment, AgendaDay } from "@/lib/agenda/data";
@@ -64,9 +64,13 @@ type AgendaViewProps = {
   days: AgendaDay[];
   view: "dia" | "semana";
   timeZone: string;
+  /** Tocar una celda abre "Nuevo turno" con ese día y hora. */
+  onCreate?: (date: string, time: string) => void;
+  /** Turno recién cargado: se resalta unos segundos. */
+  highlightId?: string | null;
 };
 
-export function AgendaView({ days, view, timeZone }: AgendaViewProps) {
+export function AgendaView({ days, view, timeZone, onCreate, highlightId }: AgendaViewProps) {
   const now = useNowMinutes(timeZone);
   const range = visibleRange(days);
   // Con varios profesionales, cada turno muestra quién atiende (el color solo no alcanza).
@@ -77,7 +81,7 @@ export function AgendaView({ days, view, timeZone }: AgendaViewProps) {
     return (
       <div className="flex flex-col gap-4">
         <DaySummary day={day} />
-        <AgendaGrid days={days} range={range} now={now} multi={multi} />
+        <AgendaGrid days={days} range={range} now={now} multi={multi} onCreate={onCreate} highlightId={highlightId} />
         <InactiveList appointments={day.inactive} />
       </div>
     );
@@ -87,7 +91,7 @@ export function AgendaView({ days, view, timeZone }: AgendaViewProps) {
     <>
       {/* Escritorio y tablet: cuadrícula de la semana */}
       <div className="hidden md:block">
-        <AgendaGrid days={days} range={range} now={now} week multi={multi} />
+        <AgendaGrid days={days} range={range} now={now} week multi={multi} onCreate={onCreate} highlightId={highlightId} />
       </div>
 
       {/* Celular: lista por día */}
@@ -156,12 +160,16 @@ function AgendaGrid({
   now,
   week,
   multi,
+  onCreate,
+  highlightId,
 }: {
   days: AgendaDay[];
   range: { from: number; to: number };
   now: number;
   week?: boolean;
   multi?: boolean;
+  onCreate?: (date: string, time: string) => void;
+  highlightId?: string | null;
 }) {
   const slots: number[] = [];
   for (let m = range.from * 60; m < range.to * 60; m += SLOT) slots.push(m);
@@ -222,6 +230,8 @@ function AgendaGrid({
                   isNow={d.isToday && m === nowSlot}
                   week={week}
                   multi={multi}
+                  onCreate={onCreate}
+                  highlightId={highlightId}
                 />
               ))}
             </Fragment>
@@ -240,6 +250,8 @@ function Cell({
   isNow,
   week,
   multi,
+  onCreate,
+  highlightId,
 }: {
   day: AgendaDay;
   slot: number;
@@ -248,6 +260,8 @@ function Cell({
   isNow: boolean;
   week?: boolean;
   multi?: boolean;
+  onCreate?: (date: string, time: string) => void;
+  highlightId?: string | null;
 }) {
   const starting = day.appointments.filter((a) => a.startMin >= slot && a.startMin < slot + SLOT);
   const ongoing = day.appointments.filter((a) => a.startMin < slot && a.endMin > slot);
@@ -256,10 +270,19 @@ function Cell({
   // El cartel del bloqueo va solo en su primera celda visible.
   const blockLabel = block && (first || block.startMin >= slot) ? block : null;
 
+  const free = starting.length === 0 && ongoing.length === 0 && !block && open;
+  const create = onCreate ? () => onCreate(day.date, minutesToHHMM(slot)) : undefined;
+
   return (
     <div
+      onClick={create}
+      onKeyDown={create ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), create()) : undefined}
+      role={create ? "button" : undefined}
+      tabIndex={create ? 0 : undefined}
+      aria-label={create ? `Nuevo turno ${day.label} a las ${minutesToHHMM(slot)}` : undefined}
       className={cn(
-        "relative flex min-h-11 min-w-0 flex-col gap-1 border-l p-1",
+        "group/cell relative flex min-h-11 min-w-0 flex-col gap-1 border-l p-1",
+        create && "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
         !first && (fullHour ? "border-t" : "border-t border-t-border/50 border-dashed"),
         !block && (open ? "bg-card" : "bg-inset"),
         isNow && "ring-1 ring-now/60 ring-inset",
@@ -273,8 +296,17 @@ function Cell({
       )}
 
       {starting.map((a) => (
-        <AppointmentChip key={a.id} appointment={a} week={week} multi={multi} />
+        <AppointmentChip key={a.id} appointment={a} week={week} multi={multi} highlighted={a.id === highlightId} />
       ))}
+
+      {create && free && (
+        <span
+          className="pointer-events-none absolute inset-1 hidden items-center justify-center rounded-md border border-dashed border-primary/40 text-primary group-hover/cell:flex group-focus-visible/cell:flex"
+          aria-hidden="true"
+        >
+          <Plus className="size-4" />
+        </span>
+      )}
 
       {starting.length === 0 &&
         ongoing.map((a) => (
@@ -287,15 +319,28 @@ function Cell({
 }
 
 /** Turno dentro de una celda. */
-function AppointmentChip({ appointment: a, week, multi }: { appointment: AgendaAppointment; week?: boolean; multi?: boolean }) {
+function AppointmentChip({
+  appointment: a,
+  week,
+  multi,
+  highlighted,
+}: {
+  appointment: AgendaAppointment;
+  week?: boolean;
+  multi?: boolean;
+  highlighted?: boolean;
+}) {
   const who = multi ? a.memberName.split(" ")[0] : null;
   return (
     <div
       className={cn(
-        "min-w-0 rounded-md border-l-[3px] bg-raised px-2 py-1.5 ring-1 ring-foreground/6",
+        "min-w-0 rounded-md border-l-[3px] bg-raised px-2 py-1.5 ring-1 ring-foreground/6 transition-shadow",
         a.status === "completed" && "opacity-75",
+        highlighted && "animate-pulse ring-2 ring-primary",
       )}
       style={{ borderLeftColor: a.memberColor }}
+      // Tocar un turno no abre "Nuevo turno" (en la Etapa 4 abrirá su detalle).
+      onClick={(e) => e.stopPropagation()}
       title={`${a.start}–${a.end} · ${a.clientName} · ${a.serviceName}${who ? ` · ${a.memberName}` : ""} · ${STATUS_LABELS[a.status]}`}
     >
       {week ? (

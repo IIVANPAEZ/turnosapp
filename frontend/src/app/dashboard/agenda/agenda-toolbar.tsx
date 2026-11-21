@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { es } from "react-day-picker/locale";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -24,11 +24,23 @@ type AgendaToolbarProps = {
   next: string;
   today: string;
   isCurrent: boolean;
+  /** Abre el panel "Nuevo turno". */
+  onCreate?: () => void;
 };
 
 export const agendaHref = (date: string, view: AgendaView) => `/dashboard/agenda?fecha=${date}&vista=${view}`;
 
-export function AgendaToolbar({ date, view, title, shortTitle, prev, next, today, isCurrent }: AgendaToolbarProps) {
+export function AgendaToolbar({
+  date,
+  view,
+  title,
+  shortTitle,
+  prev,
+  next,
+  today,
+  isCurrent,
+  onCreate,
+}: AgendaToolbarProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [y, m, d] = date.split("-").map(Number);
@@ -95,26 +107,39 @@ export function AgendaToolbar({ date, view, title, shortTitle, prev, next, today
         </Popover>
       </div>
 
-      <div className="grid w-full grid-cols-2 rounded-lg border bg-inset p-0.5 text-sm sm:w-auto" role="tablist" aria-label="Vista">
-        {(
-          [
-            ["dia", "Día"],
-            ["semana", "Semana"],
-          ] as const
-        ).map(([value, label]) => (
-          <Link
-            key={value}
-            href={agendaHref(date, value)}
-            role="tab"
-            aria-selected={view === value}
-            className={cn(
-              "rounded-md px-4 py-1.5 text-center transition-colors",
-              view === value ? "bg-raised font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {label}
-          </Link>
-        ))}
+      <div className="flex items-center gap-2">
+        <div
+          className="grid w-full grid-cols-2 rounded-lg border bg-inset p-0.5 text-sm sm:w-auto"
+          role="tablist"
+          aria-label="Vista"
+        >
+          {(
+            [
+              ["dia", "Día"],
+              ["semana", "Semana"],
+            ] as const
+          ).map(([value, label]) => (
+            <Link
+              key={value}
+              href={agendaHref(date, value)}
+              role="tab"
+              aria-selected={view === value}
+              className={cn(
+                "rounded-md px-4 py-1.5 text-center transition-colors",
+                view === value
+                  ? "bg-raised font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+        {onCreate && (
+          <Button onClick={onCreate} className="hidden sm:inline-flex">
+            <Plus /> Nuevo turno
+          </Button>
+        )}
       </div>
     </div>
   );

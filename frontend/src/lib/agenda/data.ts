@@ -19,6 +19,7 @@ import {
 
 export type AgendaAppointment = {
   id: string;
+  memberId: string;
   /** Fecha local "YYYY-MM-DD" */
   date: string;
   /** "HH:mm" locales */
@@ -79,7 +80,7 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
   let apptQuery = supabase
     .from("appointments")
     .select(
-      "id, starts_at, ends_at, status, service_name, price, price_type, notes, cancel_reason, rescheduled_to, client:clients (full_name, phone), member:business_members (color, display_name)",
+      "id, member_id, starts_at, ends_at, status, service_name, price, price_type, notes, cancel_reason, rescheduled_to, client:clients (full_name, phone), member:business_members (color, display_name)",
     )
     .eq("business_id", current.business.id)
     .gte("starts_at", rangeStart.toISOString())
@@ -134,6 +135,7 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
     const endMin = e.ymd === s.ymd ? e.minutes : 24 * 60;
     const appt: AgendaAppointment = {
       id: a.id,
+      memberId: a.member_id,
       date: s.ymd,
       start: s.hhmm,
       end: minutesToHHMM(Math.min(endMin, 24 * 60 - 1)),

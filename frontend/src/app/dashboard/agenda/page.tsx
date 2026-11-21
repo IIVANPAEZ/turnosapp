@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireBusiness } from "@/lib/auth/dal";
 import { getAgenda } from "@/lib/agenda/data";
+import { getServices } from "@/lib/services/data";
 import { addDays, isYMD, longDayLabel, MONTHS_SHORT, shortDayLabel, startOfWeek, todayYMD, weekRangeLabel } from "@/lib/time/zone";
-import { AgendaToolbar, type AgendaView as View } from "./agenda-toolbar";
-import { AgendaView } from "./agenda-view";
+import type { AgendaView as View } from "./agenda-toolbar";
+import { AgendaScreen } from "./agenda-screen";
 
 export const metadata: Metadata = { title: "Agenda" };
 
@@ -29,23 +30,31 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/dashboard/agenda
   const from = view === "semana" ? startOfWeek(date) : date;
   const step = view === "semana" ? 7 : 1;
 
-  const days = await getAgenda(from, step);
+  const [days, services] = await Promise.all([getAgenda(from, step), getServices()]);
   const currentYear = Number(today.slice(0, 4));
 
   return (
-    <>
-      <AgendaToolbar
-        date={date}
-        view={view}
-        title={view === "semana" ? weekRangeLabel(from) : longDayLabel(date, currentYear)}
-        shortTitle={view === "semana" ? shortWeekLabel(from) : `${shortDayLabel(date)} ${MONTHS_SHORT[Number(date.slice(5, 7)) - 1]}`}
-        prev={addDays(from, -step)}
-        next={addDays(from, step)}
-        today={today}
-        isCurrent={view === "semana" ? startOfWeek(today) === from : date === today}
-      />
-      <AgendaView days={days} view={view} timeZone={tz} />
-    </>
+    <AgendaScreen
+      toolbar={{
+        date,
+        view,
+        title: view === "semana" ? weekRangeLabel(from) : longDayLabel(date, currentYear),
+        shortTitle:
+          view === "semana" ? shortWeekLabel(from) : `${shortDayLabel(date)} ${MONTHS_SHORT[Number(date.slice(5, 7)) - 1]}`,
+        prev: addDays(from, -step),
+        next: addDays(from, step),
+        today,
+        isCurrent: view === "semana" ? startOfWeek(today) === from : date === today,
+      }}
+      days={days}
+      view={view}
+      timeZone={tz}
+      today={today}
+      // Solo servicios activos: los pausados no se ofrecen al cargar turnos.
+      services={services
+        .filter((s) => s.isActive)
+        .map((s) => ({ id: s.id, name: s.name, durationMinutes: s.durationMinutes, price: s.price, priceType: s.priceType }))}
+    />
   );
 }
 
