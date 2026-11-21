@@ -183,11 +183,111 @@ export type Database = {
           },
         ]
       }
+      time_off: {
+        Row: {
+          all_day: boolean
+          business_id: string
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          member_id: string | null
+          reason: string | null
+          starts_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          member_id?: string | null
+          reason?: string | null
+          starts_at: string
+        }
+        Update: {
+          all_day?: boolean
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          member_id?: string | null
+          reason?: string | null
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_off_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_off_member_fk"
+            columns: ["business_id", "member_id"]
+            isOneToOne: false
+            referencedRelation: "business_members"
+            referencedColumns: ["business_id", "id"]
+          },
+        ]
+      }
+      working_hours: {
+        Row: {
+          business_id: string
+          created_at: string
+          end_time: string
+          id: string
+          member_id: string
+          start_time: string
+          weekday: number
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          member_id: string
+          start_time: string
+          weekday: number
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          member_id?: string
+          start_time?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "working_hours_member_fk"
+            columns: ["business_id", "member_id"]
+            isOneToOne: false
+            referencedRelation: "business_members"
+            referencedColumns: ["business_id", "id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      add_time_off: {
+        Args: {
+          p_end_date?: string
+          p_end_time?: string
+          p_member_id?: string
+          p_reason?: string
+          p_start_date: string
+          p_start_time?: string
+        }
+        Returns: string
+      }
       create_business: {
         Args: {
           p_category: Database["public"]["Enums"]["business_category"]
@@ -200,6 +300,10 @@ export type Database = {
         Returns: string
       }
       is_slug_available: { Args: { p_slug: string }; Returns: boolean }
+      set_working_hours: {
+        Args: { p_hours: Json; p_member_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       business_category: "beauty" | "health" | "other"
