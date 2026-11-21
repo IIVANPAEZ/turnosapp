@@ -199,3 +199,8 @@ export const getTodaySchedule = cache(async (memberId: string): Promise<TodaySch
     blocks,
   };
 });
+
+/** "vie 20 nov" de hoy, en la zona del negocio. */
+export function todayLabel(timeZone: string): string {
+  return dayLabel(localParts(new Date(), timeZone), false);
+}

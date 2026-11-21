@@ -4,14 +4,14 @@ import { Suspense } from "react";
 import { ArrowRight, Check, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CopyButton } from "@/components/copy-button";
-import { DayStrip } from "@/components/day-strip";
+import { TodayPanel } from "@/components/today/today-panel";
 import { cn } from "@/lib/utils";
 import { DEFAULT_TIMEZONE, PUBLIC_SITE_DOMAIN } from "@/lib/config";
 import { requireBusiness } from "@/lib/auth/dal";
 import { MEMBER_COLORS } from "@/lib/business/members";
 import { WEEKDAYS } from "@/lib/schedule/constants";
-import { getTodaySchedule, getWeekHours } from "@/lib/schedule/data";
-import { visibleHours, weeklyTotal } from "@/lib/schedule/week";
+import { getTodaySchedule, getWeekHours, todayLabel } from "@/lib/schedule/data";
+import { weeklyTotal } from "@/lib/schedule/week";
 import { getServices } from "@/lib/services/data";
 
 export const metadata: Metadata = { title: "Inicio" };
@@ -79,8 +79,6 @@ async function Home() {
 
   // Estado de hoy para la tarjeta "Hoy".
   const allDayBlock = today.blocks.find((b) => b.allDay);
-  const partialBlocks = today.blocks.filter((b) => !b.allDay);
-  const { from, to } = visibleHours(week);
 
   return (
     <>
@@ -91,49 +89,13 @@ async function Home() {
         </h2>
       </section>
 
-      <Card>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h3 className="font-medium">Hoy</h3>
-              {!hasHours ? (
-                <Link href="/dashboard/horarios" className="text-sm text-primary hover:underline">
-                  Cargá tus horarios →
-                </Link>
-              ) : allDayBlock ? (
-                <span className="text-sm text-warning">Hoy no atendés · {allDayBlock.label}</span>
-              ) : today.open.length ? (
-                <span className="text-sm text-muted-foreground">
-                  Atendés{" "}
-                  <span className="font-mono text-foreground tabular">
-                    {today.open.map((r) => `${r.start}–${r.end}`).join(" · ")}
-                  </span>
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground">Hoy está cerrado</span>
-              )}
-            </div>
-            <span className="text-xs text-faint">Los turnos llegan con la Agenda (Sprint 3)</span>
-          </div>
-          <DayStrip
-            timeZone={business.timezone}
-            openRanges={hasHours ? today.open : undefined}
-            rangeLabels
-            from={from}
-            to={to}
-            emptyLabel={hasHours ? (allDayBlock ? "Bloqueado todo el día" : "Cerrado") : "Sin horario cargado"}
-          />
-          {partialBlocks.length > 0 && (
-            <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
-              {partialBlocks.map((b) => (
-                <li key={b.label}>
-                  Bloqueado: <span className="font-mono tabular">{b.label}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {/* Turnos de hoy: se conectan con la Agenda en el Sprint 3 (por ahora, lista vacía). */}
+      <TodayPanel
+        appointments={[]}
+        dateLabel={todayLabel(business.timezone)}
+        timeZone={business.timezone}
+        hours={{ hasHours, open: today.open, allDayBlock: allDayBlock?.label ?? null }}
+      />
 
       <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
         <Card>

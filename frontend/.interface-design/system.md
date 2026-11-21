@@ -59,12 +59,16 @@ Escala usada: título de página `text-2xl`–`text-3xl` · título de tarjeta `
 
 `src/components/day-strip.tsx` — el día de trabajo (8–20 h por defecto) como franja horizontal hundida; los turnos son bloques del color de cada profesional; la marca celeste de "ahora" se mueve sola (hora de Asunción, solo en el navegador).
 
-- Usarla donde se hable del **día**: Inicio, Agenda (vista día), Horarios (vista previa de la jornada), pantallas de marca.
+- Usarla donde se hable de **cuándo se atiende**: Horarios (vista semanal) y Agenda (vista día). En el **Inicio y el login NO**: ahí va la tarjeta "Hoy" con pestañas (ver abajo). El usuario la encontró poco clara para "qué tengo hoy".
 - En franjas angostas (`@container` < md) los bloques ocultan el texto.
 - No reemplazarla por un gráfico de barras ni una lista: es la firma visual del producto.
 - **Abierto / cerrado:** `openRanges` pinta las horas de atención en ámbar oscuro sólido y deja las cerradas rayadas. Con `rangeLabels` se escribe el horario dentro de cada tramo (`08–12`). El usuario pidió que se entienda sin interpretar colores: siempre que se muestre un horario, acompañarlo de texto (horas escritas, total del día).
 - `size="sm"` (compacta) existe, pero para pilas de días se prefiere el tamaño normal con `hourScale={false}` y una sola escala de horas abajo.
 - Vocabulario para el usuario: "horario", "pausa", "cerrado", "bloqueo". Evitar "franja" en la interfaz (resultó confuso).
+
+## Tarjeta "Hoy" (Inicio y login)
+
+`src/components/today/today-panel.tsx` — pestañas **En curso · Próximos · Atendidos** con contador; se abre sola la que importa. Cada turno: hora (mono), cliente, servicio y chip de estado (`src/lib/appointments/status.ts`: Pendiente, Confirmado, Finalizado, Cancelado, No vino; "Reprogramado → jue 14:00" es una marca; "En curso" se calcula con la hora). En curso muestra progreso y acciones rápidas (Finalizar / No vino). En el login va como muestra con `demo` (hora fija 14:50) y se oculta en el celular.
 
 ## Patrones de componentes
 

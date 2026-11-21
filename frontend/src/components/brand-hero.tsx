@@ -1,16 +1,29 @@
 import { BellRing, CalendarClock, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DEFAULT_TIMEZONE } from "@/lib/config";
 import { Brand } from "@/components/layout/brand";
-import { DayStrip, type DayStripItem } from "@/components/day-strip";
+import { TodayPanel } from "@/components/today/today-panel";
+import type { TodayAppointment } from "@/lib/appointments/status";
 
-/** Día de ejemplo para mostrar "la tira del día" en las pantallas de marca. */
-const DEMO_DAY: DayStripItem[] = [
-  { id: "1", start: "09:00", end: "10:00", label: "Laura", color: "#c98a2b" },
-  { id: "2", start: "10:15", end: "11:00", label: "Sofi", color: "#0891b2" },
-  { id: "3", start: "12:00", end: "13:30", label: "Marta", color: "#c98a2b" },
-  { id: "4", start: "14:30", end: "15:30", label: "Ana", color: "#059669" },
-  { id: "5", start: "16:00", end: "17:30", label: "Dani", color: "#0891b2" },
+/** Día de ejemplo para la muestra de la tarjeta "Hoy" (con la hora fija en 14:50). */
+const DEMO_APPOINTMENTS: TodayAppointment[] = [
+  { id: "1", start: "09:00", end: "09:45", clientName: "Laura Giménez", serviceName: "Corte de cabello", status: "completed" },
+  { id: "2", start: "10:00", end: "10:30", clientName: "Sofía Ruiz", serviceName: "Barba", status: "cancelled" },
+  {
+    id: "3",
+    start: "11:00",
+    end: "12:00",
+    clientName: "Marta López",
+    serviceName: "Coloración",
+    status: "pending",
+    rescheduledTo: "jue 14:00",
+  },
+  { id: "4", start: "14:30", end: "15:30", clientName: "Ana Benítez", serviceName: "Corte + barba", status: "confirmed" },
+  { id: "5", start: "15:45", end: "16:30", clientName: "Daniela Ríos", serviceName: "Manicura", status: "confirmed" },
+  { id: "6", start: "17:00", end: "17:30", clientName: "Carla Duarte", serviceName: "Barba", status: "pending" },
 ];
+
+const DEMO_NOW = 14 * 60 + 50;
 
 const FEATURES = [
   { icon: CalendarClock, text: "Tus clientes reservan solos, 24/7" },
@@ -20,7 +33,8 @@ const FEATURES = [
 
 /**
  * Panel de marca de las pantallas públicas (login, registro, recuperar).
- * En el celular queda arriba del formulario; en escritorio, a la izquierda.
+ * En el celular queda arriba del formulario (sin la muestra, para no empujarlo);
+ * en escritorio, a la izquierda.
  */
 export function BrandHero({ className }: { className?: string }) {
   return (
@@ -40,13 +54,15 @@ export function BrandHero({ className }: { className?: string }) {
             </p>
           </div>
 
-          <div className="rounded-xl border bg-card/60 p-3 backdrop-blur-sm sm:p-4">
-            <div className="mb-2.5 flex items-baseline justify-between text-xs">
-              <span className="font-medium">Hoy</span>
-              <span className="text-muted-foreground">5 turnos · ₲ 720.000</span>
-            </div>
-            <DayStrip items={DEMO_DAY} />
-          </div>
+          {/* Muestra de la tarjeta "Hoy" del panel: lo mismo que van a ver al entrar. */}
+          <TodayPanel
+            demo={{ nowMinutes: DEMO_NOW }}
+            appointments={DEMO_APPOINTMENTS}
+            dateLabel="viernes"
+            timeZone={DEFAULT_TIMEZONE}
+            hours={{ hasHours: true, open: [{ start: "08:00", end: "12:00" }, { start: "14:00", end: "19:00" }] }}
+            className="hidden bg-card/70 backdrop-blur-sm sm:flex"
+          />
         </div>
 
         <ul className="hidden flex-col gap-3 lg:flex">
