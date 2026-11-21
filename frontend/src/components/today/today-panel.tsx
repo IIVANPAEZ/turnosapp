@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarCheck2, CheckCheck, Coffee, MoonStar } from "lucide-react";
+import { ArrowRight, CalendarCheck2, Check, CheckCheck, CircleAlert, Coffee, Loader2, MoonStar, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   isOpenStatus,
   STATUS_LABELS,
   STATUS_STYLES,
+  type AppointmentStatus,
   type TodayAppointment,
 } from "@/lib/appointments/status";
 
@@ -34,6 +35,12 @@ type TodayPanelProps = {
   hours: HoursInfo;
   /** Muestra con hora fija (minutos desde medianoche) y sin acciones reales. */
   demo?: { nowMinutes: number };
+  /** Tocar un turno (abre su detalle). */
+  onOpen?: (id: string) => void;
+  /** Finalizar / No vino. Devuelve un error si no se pudo. */
+  onAction?: (id: string, status: Extract<AppointmentStatus, "completed" | "no_show">) => Promise<string | null>;
+  /** "+ Nuevo turno" */
+  onCreate?: () => void;
   className?: string;
 };
 
@@ -60,19 +67,28 @@ function inMinutes(m: number) {
   return m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${Math.floor(m / 60)} h`;
 }
 
-export function TodayPanel({ appointments, dateLabel, timeZone, hours, demo, className }: TodayPanelProps) {
+export function TodayPanel({
+  appointments,
+  dateLabel,
+  timeZone,
+  hours,
+  demo,
+  onOpen,
+  onAction,
+  onCreate,
+  className,
+}: TodayPanelProps) {
   // En el servidor (prerender) no hay "ahora": -1 = todavía no se sabe.
   const liveNow = useSyncExternalStore(subscribeMinute, () => nowInZone(timeZone), () => -1);
   const now = demo ? demo.nowMinutes : liveNow;
 
   const sorted = [...appointments].sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
-  const inProgress = sorted.filter(
-    (a) => isOpenStatus(a.status) && !a.rescheduledTo && now >= 0 && toMinutes(a.start) <= now && now < toMinutes(a.end),
-  );
-  const upcoming = sorted.filter(
-    (a) => isOpenStatus(a.status) && !a.rescheduledTo && (now < 0 || toMinutes(a.start) > now),
-  );
+  const active = sorted.filter((a) => isOpenStatus(a.status) && !a.rescheduledTo);
+  const inProgress = active.filter((a) => now >= 0 && toMinutes(a.start) <= now && now < toMinutes(a.end));
+  const upcoming = active.filter((a) => now < 0 || toMinutes(a.start) > now);
   const done = sorted.filter((a) => !inProgress.includes(a) && !upcoming.includes(a)).reverse();
+  // Ya pasó la hora pero nadie marcó si vino.
+  const unclosed = done.filter((a) => isOpenStatus(a.status) && !a.rescheduledTo);
 
   // Pestaña automática: "En curso" si hay alguien, si no "Próximos". El usuario puede cambiarla.
   const [chosen, setChosen] = useState<TabKey | null>(null);
@@ -80,14 +96,23 @@ export function TodayPanel({ appointments, dateLabel, timeZone, hours, demo, cla
 
   const nextUp = upcoming[0];
   const openNow = hours.open.some((r) => now >= 0 && toMinutes(r.start) <= now && now < toMinutes(r.end));
+  const total = active.length + sorted.filter((a) => a.status === "completed").length;
+  // Solo los que todavía no pasaron (los pasados se marcan con "sin cerrar").
+  const toConfirm = [...inProgress, ...upcoming].filter((a) => a.status === "pending").length;
 
   return (
     <section className={cn("flex flex-col gap-4 rounded-xl bg-card p-5 ring-1 ring-foreground/[0.07]", className)}>
       {/* Encabezado: fecha + horario de hoy */}
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0">
           <h3 className="font-medium">
             Hoy <span className="font-normal text-muted-foreground first-letter:uppercase">· {dateLabel}</span>
+            {!demo && total > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                · {total} turno{total === 1 ? "" : "s"}
+                {toConfirm > 0 && <span className="text-foreground"> · {toConfirm} por confirmar</span>}
+              </span>
+            )}
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {!hours.hasHours ? (
@@ -111,43 +136,64 @@ export function TodayPanel({ appointments, dateLabel, timeZone, hours, demo, cla
           </p>
         </div>
         {!demo && (
-          <Link
-            href="/dashboard/agenda"
-            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Ver agenda <ArrowRight className="size-3.5" />
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/dashboard/agenda"
+              className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-raised hover:text-foreground"
+            >
+              Ver agenda <ArrowRight className="size-3.5" />
+            </Link>
+            {onCreate && (
+              <button
+                type="button"
+                onClick={onCreate}
+                className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-[color-mix(in_oklch,var(--primary),white_10%)]"
+              >
+                <Plus className="size-4" /> Nuevo turno
+              </button>
+            )}
+          </div>
         )}
       </div>
+
+      {/* Aviso de turnos sin cerrar */}
+      {!demo && unclosed.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setChosen("done")}
+          className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-left text-sm transition-colors hover:border-warning/50"
+        >
+          <span className="flex items-center gap-2">
+            <CircleAlert className="size-4 text-warning" />
+            Tenés {unclosed.length} turno{unclosed.length === 1 ? "" : "s"} sin cerrar: marcá si vinieron.
+          </span>
+          <ArrowRight className="size-4 text-warning" />
+        </button>
+      )}
 
       <Tabs value={tab} onValueChange={(v) => setChosen(v as TabKey)} className="gap-3">
         <TabsList className="grid h-10 w-full grid-cols-3 rounded-lg border bg-inset p-1">
           <PanelTab value="now" label="En curso" count={inProgress.length} highlight={inProgress.length > 0} />
           <PanelTab value="upcoming" label="Próximos" count={upcoming.length} />
-          <PanelTab value="done" label="Atendidos" count={done.length} />
+          <PanelTab value="done" label="Atendidos" count={done.length} warn={!demo && unclosed.length > 0} />
         </TabsList>
 
         <TabsContent value="now" className="min-h-44">
           {inProgress.length ? (
             <ul className="flex flex-col gap-2">
               {inProgress.map((a) => {
-                const total = toMinutes(a.end) - toMinutes(a.start);
-                const elapsed = Math.min(total, Math.max(0, now - toMinutes(a.start)));
+                const totalMin = toMinutes(a.end) - toMinutes(a.start);
+                const elapsed = Math.min(totalMin, Math.max(0, now - toMinutes(a.start)));
                 return (
                   <li key={a.id} className="flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary-soft/40 p-4">
-                    <AppointmentRow appointment={a} chip={<Chip style="in_progress">En curso</Chip>} />
+                    <AppointmentRow appointment={a} chip={<Chip style="in_progress">En curso</Chip>} onOpen={onOpen} />
                     <div className="flex flex-col gap-1.5">
                       <div className="h-1.5 overflow-hidden rounded-full bg-inset">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${(elapsed / total) * 100}%` }} />
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${(elapsed / totalMin) * 100}%` }} />
                       </div>
-                      <p className="text-xs text-muted-foreground">Termina en {inMinutes(total - elapsed)}</p>
+                      <p className="text-xs text-muted-foreground">Termina en {inMinutes(totalMin - elapsed)}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <ActionButton demo={!!demo} primary>
-                        <CheckCheck className="size-4" /> Finalizar
-                      </ActionButton>
-                      <ActionButton demo={!!demo}>No vino</ActionButton>
-                    </div>
+                    <QuickActions id={a.id} demo={!!demo} onAction={onAction} labels={["Finalizar", "No vino"]} />
                   </li>
                 );
               })}
@@ -178,6 +224,7 @@ export function TodayPanel({ appointments, dateLabel, timeZone, hours, demo, cla
                     appointment={a}
                     chip={<Chip style={a.status}>{STATUS_LABELS[a.status]}</Chip>}
                     hint={now >= 0 ? `en ${inMinutes(toMinutes(a.start) - now)}` : undefined}
+                    onOpen={onOpen}
                   />
                 </li>
               ))}
@@ -186,11 +233,7 @@ export function TodayPanel({ appointments, dateLabel, timeZone, hours, demo, cla
             <EmptyState
               icon={CalendarCheck2}
               title="No tenés más turnos hoy"
-              detail={
-                demo
-                  ? ""
-                  : "Cuando tus clientes reserven o cargues un turno en la Agenda, aparecen acá."
-              }
+              detail={demo ? "" : "Cuando cargues un turno o tus clientes reserven, aparecen acá."}
             />
           )}
         </TabsContent>
@@ -198,24 +241,32 @@ export function TodayPanel({ appointments, dateLabel, timeZone, hours, demo, cla
         <TabsContent value="done" className="min-h-44">
           {done.length ? (
             <ul className="flex flex-col divide-y">
-              {done.map((a) => (
-                <li key={a.id} className="py-3 first:pt-1 last:pb-0">
-                  <AppointmentRow
-                    appointment={a}
-                    muted
-                    chip={
-                      a.rescheduledTo ? (
-                        <Chip style="rescheduled">Reprogramado → {a.rescheduledTo}</Chip>
-                      ) : isOpenStatus(a.status) ? (
-                        // Ya pasó la hora pero nadie lo cerró.
-                        <Chip style="pending">Sin cerrar</Chip>
-                      ) : (
-                        <Chip style={a.status}>{STATUS_LABELS[a.status]}</Chip>
-                      )
-                    }
-                  />
-                </li>
-              ))}
+              {done.map((a) => {
+                const isUnclosed = isOpenStatus(a.status) && !a.rescheduledTo;
+                return (
+                  <li key={a.id} className="flex flex-col gap-2.5 py-3 first:pt-1 last:pb-0">
+                    <AppointmentRow
+                      appointment={a}
+                      muted={!isUnclosed}
+                      onOpen={onOpen}
+                      chip={
+                        a.rescheduledTo ? (
+                          <Chip style="rescheduled">Reprogramado → {a.rescheduledTo}</Chip>
+                        ) : isUnclosed ? (
+                          <Chip style="no_show">Sin cerrar</Chip>
+                        ) : (
+                          <Chip style={a.status}>{STATUS_LABELS[a.status]}</Chip>
+                        )
+                      }
+                    />
+                    {isUnclosed && !demo && (
+                      <div className="pl-22">
+                        <QuickActions id={a.id} demo={false} onAction={onAction} labels={["Vino", "No vino"]} small />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <EmptyState
@@ -230,7 +281,19 @@ export function TodayPanel({ appointments, dateLabel, timeZone, hours, demo, cla
   );
 }
 
-function PanelTab({ value, label, count, highlight }: { value: TabKey; label: string; count: number; highlight?: boolean }) {
+function PanelTab({
+  value,
+  label,
+  count,
+  highlight,
+  warn,
+}: {
+  value: TabKey;
+  label: string;
+  count: number;
+  highlight?: boolean;
+  warn?: boolean;
+}) {
   return (
     <TabsTrigger
       value={value}
@@ -240,7 +303,7 @@ function PanelTab({ value, label, count, highlight }: { value: TabKey; label: st
       <span
         className={cn(
           "min-w-5 rounded-full px-1.5 font-mono text-[11px] leading-5 tabular",
-          highlight ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
+          highlight ? "bg-primary text-primary-foreground" : warn ? "bg-warning text-primary-foreground" : "bg-card text-muted-foreground",
         )}
       >
         {count}
@@ -254,15 +317,17 @@ function AppointmentRow({
   chip,
   hint,
   muted,
+  onOpen,
 }: {
   appointment: TodayAppointment;
   chip: React.ReactNode;
   hint?: string;
   muted?: boolean;
+  onOpen?: (id: string) => void;
 }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="w-[4.75rem] shrink-0 pt-0.5">
+  const content = (
+    <>
+      <div className="w-19 shrink-0 pt-0.5">
         <p className={cn("font-mono text-sm tabular", muted ? "text-muted-foreground" : "text-foreground")}>{a.start}</p>
         <p className="font-mono text-[11px] text-faint tabular">{a.end}</p>
       </div>
@@ -274,7 +339,17 @@ function AppointmentRow({
         </p>
       </div>
       <div className="shrink-0 pt-0.5">{chip}</div>
-    </div>
+    </>
+  );
+  if (!onOpen) return <div className="flex items-start gap-3">{content}</div>;
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(a.id)}
+      className="-mx-2 flex items-start gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-raised"
+    >
+      {content}
+    </button>
   );
 }
 
@@ -286,24 +361,64 @@ function Chip({ style, children }: { style: keyof typeof STATUS_STYLES; children
   );
 }
 
-/** Botón de acción rápida. En la muestra del login es solo visual. */
-function ActionButton({ demo, primary, children }: { demo: boolean; primary?: boolean; children: React.ReactNode }) {
-  const className = cn(
-    "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium",
-    primary ? "bg-primary text-primary-foreground" : "border border-line-strong text-foreground",
+/** Finalizar / No vino (o Vino / No vino). En la muestra del login son solo visuales. */
+function QuickActions({
+  id,
+  demo,
+  onAction,
+  labels,
+  small,
+}: {
+  id: string;
+  demo: boolean;
+  onAction?: TodayPanelProps["onAction"];
+  labels: [string, string];
+  small?: boolean;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [busy, setBusy] = useState<"completed" | "no_show" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const base = cn(
+    "inline-flex items-center gap-1.5 rounded-lg font-medium",
+    small ? "h-7 px-2.5 text-xs" : "h-8 px-3 text-[13px]",
   );
-  if (demo) {
+  const primary = cn(base, "bg-primary text-primary-foreground");
+  const secondary = cn(base, "border border-line-strong text-foreground");
+
+  if (demo || !onAction) {
     return (
-      <span className={className} aria-hidden="true">
-        {children}
-      </span>
+      <div className="flex gap-2" aria-hidden="true">
+        <span className={primary}>
+          <CheckCheck className="size-4" /> {labels[0]}
+        </span>
+        <span className={secondary}>{labels[1]}</span>
+      </div>
     );
   }
-  // Se conecta en el Sprint 3, cuando existan los turnos.
+
+  const act = (status: "completed" | "no_show") =>
+    startTransition(async () => {
+      setBusy(status);
+      setError(null);
+      const err = await onAction(id, status);
+      if (err) setError(err);
+      setBusy(null);
+    });
+
   return (
-    <button type="button" className={cn(className, "transition-opacity hover:opacity-90")}>
-      {children}
-    </button>
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-2">
+        <button type="button" disabled={pending} onClick={() => act("completed")} className={cn(primary, "transition-opacity hover:opacity-90 disabled:opacity-60")}>
+          {busy === "completed" ? <Loader2 className="size-4 animate-spin" /> : small ? <Check className="size-3.5" /> : <CheckCheck className="size-4" />}
+          {labels[0]}
+        </button>
+        <button type="button" disabled={pending} onClick={() => act("no_show")} className={cn(secondary, "transition-colors hover:bg-raised disabled:opacity-60")}>
+          {busy === "no_show" && <Loader2 className="size-4 animate-spin" />}
+          {labels[1]}
+        </button>
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
   );
 }
 

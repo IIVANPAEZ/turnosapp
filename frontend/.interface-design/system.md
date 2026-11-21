@@ -68,7 +68,20 @@ Escala usada: título de página `text-2xl`–`text-3xl` · título de tarjeta `
 
 ## Tarjeta "Hoy" (Inicio y login)
 
-`src/components/today/today-panel.tsx` — pestañas **En curso · Próximos · Atendidos** con contador; se abre sola la que importa. Cada turno: hora (mono), cliente, servicio y chip de estado (`src/lib/appointments/status.ts`: Pendiente, Confirmado, Finalizado, Cancelado, No vino; "Reprogramado → jue 14:00" es una marca; "En curso" se calcula con la hora). En curso muestra progreso y acciones rápidas (Finalizar / No vino). En el login va como muestra con `demo` (hora fija 14:50) y se oculta en el celular.
+`src/components/today/today-panel.tsx` — pestañas **En curso · Próximos · Atendidos** con contador; se abre sola la que importa. En el Inicio: resumen ("6 turnos · 1 por confirmar"), "+ Nuevo turno", aviso ámbar "Tenés N turnos sin cerrar" (lleva a Atendidos) y botones rápidos; tocar un turno abre el mismo detalle que la agenda. Cada turno: hora (mono), cliente, servicio y chip de estado (`src/lib/appointments/status.ts`: Pendiente, Confirmado, Finalizado, Cancelado, No vino; "Reprogramado → jue 14:00" es una marca; "En curso" se calcula con la hora). En curso muestra progreso y acciones rápidas (Finalizar / No vino). En el login va como muestra con `demo` (hora fija 14:50) y se oculta en el celular.
+
+## Agenda (`/dashboard/agenda`)
+
+- **Cuadrícula horas × días** (`agenda-view.tsx`): filas cada 30 min, columna de horas fija (`sticky left-0`). Cada celda lista **todos** los turnos que empiezan en esa media hora (se apilan; la celda crece). En las celdas siguientes de un turno largo: "↳ Nombre (sigue)" en `text-faint`. Celdas: abiertas `bg-card`, cerradas `bg-inset` + rayado, bloqueadas rayado ámbar + "Bloqueado · motivo", media hora actual `ring-now/60`. El usuario rechazó la línea de tiempo con tarjetas posicionadas: no volver a ella.
+- **Turno en la celda:** `bg-raised`, borde izquierdo del color del profesional, chip de estado; en semana, puntito de estado. Con más de un profesional, se muestra quién atiende.
+- **Celda vacía** = botón "Nuevo turno" con ese día/hora (aparece un "+" punteado al pasar el mouse). **Tocar un turno** abre su detalle (no la celda).
+- Semana en el celular = lista por día (no cuadrícula). Cancelados / no vino / reprogramados no ocupan lugar: van en una lista desplegable debajo del día.
+
+## Detalle y nuevo turno
+
+- **Nuevo turno** (`new-appointment-form.tsx`): Cliente (buscar o "+ Nuevo cliente") → Servicio (radio con duración y precio, "Ajustar" duración) → Día (popover con calendario) y horarios libres en chips **Mañana / Tarde**, "Elegir otra hora" → Estado (Confirmado / Por confirmar) → Nota. Se pisa = error rojo y botón deshabilitado; fuera de horario/bloqueo/pasado = aviso ámbar y botón **"Cargar igual"**.
+- **Detalle** (`appointment-detail.tsx`): chip de estado, fecha y horario en mono, servicio y precio; tarjeta **Contacto** (celular, Llamar, botones de WhatsApp en verde `bg-success-soft`); nota editable; acciones fijas abajo según estado y hora. Cancelar y reprogramar abren un recuadro dentro del panel (no otro diálogo). Después: tarjeta verde "¿Le avisás? → Avisar por WhatsApp".
+- Estados: **"Por confirmar"** (no "Pendiente"), Confirmado, Finalizado, No vino, Cancelado, "Reprogramado → Lun 23, 14:00". **"Sin cerrar"** = ya pasó y sigue abierto (chip ámbar + botones Vino / No vino en el Inicio).
 
 ## Patrones de componentes
 

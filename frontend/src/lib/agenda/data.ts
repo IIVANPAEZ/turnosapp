@@ -175,3 +175,15 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
 
   return result;
 });
+
+/** ¿El negocio ya tiene algún turno cargado? (para "Primeros pasos") */
+export const hasAnyAppointment = cache(async (): Promise<boolean> => {
+  const current = await getCurrentBusiness();
+  if (!current) return false;
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", current.business.id);
+  return (count ?? 0) > 0;
+});

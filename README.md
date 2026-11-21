@@ -30,6 +30,10 @@ SaaS de gestión de turnos para cualquier negocio o profesional que trabaje con 
 │       │   ├── business/     Onboarding, configuración del negocio, slug, profesionales
 │       │   ├── services/     Servicios: reglas, plantillas por rubro, datos y acciones
 │       │   ├── schedule/     Horarios semanales, bloqueos, feriados de Paraguay
+│       │   ├── agenda/       Agenda: datos por día/semana, horarios libres, acciones de turnos
+│       │   ├── appointments/ Estados del turno (textos y colores)
+│       │   ├── time/zone.ts  Fechas y horas en la zona del negocio (sin dependencias)
+│       │   ├── whatsapp.ts   Links de WhatsApp con mensaje listo
 │       │   └── format.ts     Guaraníes (₲ 150.000) y duraciones (1 h 30 min)
 │       └── proxy.ts          Renueva la sesión y redirige según haya sesión o no
 │   └── .interface-design/    Guía del sistema de diseño (colores, tipografía, patrones)
@@ -118,7 +122,7 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 | Base Next.js 16 + TS + shadcn, navegación del panel | ✅ |
 | Sprint 1: Supabase, auth, negocios, profesionales, RLS, onboarding | ✅ |
 | Sprint 2: Configuración, servicios y horarios | ✅ |
-| Sprint 3: Agenda | Pendiente |
+| Sprint 3: Agenda | ✅ |
 | Sprint 4: Reservas públicas | Pendiente |
 | Sprint 5: Clientes, pagos y dashboard | Pendiente |
 | Sprint 6: PWA y pruebas | Pendiente |
@@ -139,8 +143,16 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 - **Horarios** (`/dashboard/horarios`): semana por profesional con pausas elegibles, vista semanal, plantillas, copiar a otros días; bloqueos de días completos o de unas horas; feriados nacionales de Paraguay como sugerencias (Semana Santa calculada; los trasladables se marcan para confirmar).
 - **Inicio:** horario real de hoy (descontando bloqueos) en la tira del día y "Primeros pasos" con el progreso real.
 
+### Sprint 3 — qué incluye
+- **Base:** `clients` (nombre + celular; el celular no se repite, se normaliza "+595…" = "0…") y `appointments` (precio congelado, estados, reprogramado, motivo). Dos turnos activos del mismo profesional **no se pueden pisar** (exclusión con `btree_gist`). Funciones `create_appointment`, `reschedule_appointment` (todo o nada) y `set_appointment_status`. Los turnos no se borran (se cancelan) y un servicio con turnos no se puede borrar (se pausa).
+- **Agenda** (`/dashboard/agenda`): cuadrícula horas × días (cada 30 min), vista Día y Semana (en el celular, lista por día), navegación por fechas con calendario. Varios turnos en el mismo horario se apilan. El dueño/admin ve los turnos de todo el equipo; cada profesional, los suyos.
+- **Nuevo turno:** buscar o crear cliente (aviso de celular duplicado), servicio con duración ajustable, horarios libres sugeridos (horario, pausas, bloqueos y otros turnos), avisos de fuera de horario/bloqueo/pasado y error si se pisa. Desde la barra, el "+" flotante, una celda o el Inicio.
+- **Detalle del turno:** confirmar, finalizar y "no vino" (desde la hora de inicio), cancelar con motivo, reprogramar (calendario + horarios libres), deshacer, editar nota; WhatsApp con mensaje listo (confirmación, recordatorio, reprogramado, cancelado).
+- **Inicio:** tarjeta "Hoy" con En curso / Próximos / Atendidos, acciones rápidas y aviso de turnos **sin cerrar** (Vino / No vino).
+
 ### Pendientes conocidos
 - Al eliminar la cuenta de un dueño, su negocio queda sin dueño: implementar "eliminar cuenta" borrando también el negocio.
 - Antes de producción: confirmación de email + SMTP propio + templates en español; activar la protección contra contraseñas filtradas (Auth → Passwords).
 - Feriados trasladables (1 de marzo, 12 de junio, 29 de setiembre): confirmar cada año la fecha que fija el gobierno.
-- Agregar personal (varios profesionales) y qué servicios hace cada uno: post-MVP; las tablas ya lo contemplan.
+- Agregar personal (varios profesionales) y qué servicios hace cada uno: post-MVP; las tablas ya lo contemplan. Al hacerlo: restringir en RLS que el personal vea solo sus turnos y sumar al dueño un selector "Todos / Mis turnos / <profesional>" en la agenda.
+- Recordatorios automáticos por WhatsApp (whatsapp-web.js, un número por profesional): post-MVP. Hoy los mensajes se abren en el WhatsApp del profesional para enviarlos a mano.

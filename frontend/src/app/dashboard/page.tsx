@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ArrowRight, Check, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CopyButton } from "@/components/copy-button";
-import { TodayPanel } from "@/components/today/today-panel";
+
 import { cn } from "@/lib/utils";
 import { DEFAULT_TIMEZONE, PUBLIC_SITE_DOMAIN } from "@/lib/config";
 import { requireBusiness } from "@/lib/auth/dal";
@@ -13,6 +13,9 @@ import { WEEKDAYS } from "@/lib/schedule/constants";
 import { getTodaySchedule, getWeekHours, todayLabel } from "@/lib/schedule/data";
 import { weeklyTotal } from "@/lib/schedule/week";
 import { getServices } from "@/lib/services/data";
+import { getAgenda, hasAnyAppointment } from "@/lib/agenda/data";
+import { todayYMD } from "@/lib/time/zone";
+import { HomeToday } from "./home-today";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -40,10 +43,13 @@ type Step = { label: string; hint: string; done: boolean; href?: string; soon?: 
 
 async function Home() {
   const { business, member } = await requireBusiness();
-  const [services, week, today] = await Promise.all([
+  const todayDate = todayYMD(business.timezone);
+  const [services, week, today, [agendaToday], anyAppointment] = await Promise.all([
     getServices(),
     getWeekHours(member.id),
     getTodaySchedule(member.id),
+    getAgenda(todayDate, 1),
+    hasAnyAppointment(),
   ]);
   const firstName = member.displayName.split(" ")[0];
   const publicUrl = `${PUBLIC_SITE_DOMAIN}/${business.slug}`;
@@ -73,6 +79,12 @@ async function Home() {
       done: hasHours,
       href: "/dashboard/horarios",
     },
+    {
+      label: "Cargá tu primer turno",
+      hint: anyAppointment ? "Ya estás usando tu agenda" : "Desde la Agenda o con “Nuevo turno”",
+      done: anyAppointment,
+      href: "/dashboard/agenda",
+    },
     { label: "Compartí tu link de reservas", hint: "Por WhatsApp o Instagram", done: false, soon: true },
   ];
   const doneCount = steps.filter((s) => s.done).length;
@@ -89,11 +101,16 @@ async function Home() {
         </h2>
       </section>
 
-      {/* Turnos de hoy: se conectan con la Agenda en el Sprint 3 (por ahora, lista vacía). */}
-      <TodayPanel
-        appointments={[]}
+      {/* Turnos de hoy: en curso, próximos y atendidos (con acciones rápidas). */}
+      <HomeToday
+        day={agendaToday}
         dateLabel={todayLabel(business.timezone)}
         timeZone={business.timezone}
+        today={todayDate}
+        businessName={business.name}
+        services={services
+          .filter((s) => s.isActive)
+          .map((s) => ({ id: s.id, name: s.name, durationMinutes: s.durationMinutes, price: s.price, priceType: s.priceType }))}
         hours={{ hasHours, open: today.open, allDayBlock: allDayBlock?.label ?? null }}
       />
 
