@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { getCurrentBusiness } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
-import { emptyWeek, type WeekHours, type Weekday } from "./constants";
+import { emptyWeek, type TimeRange, type WeekHours, type Weekday } from "./constants";
 import { sortRanges } from "./week";
 
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "set", "oct", "nov", "dic"];
@@ -129,4 +129,73 @@ export const getUpcomingTimeOff = cache(async (): Promise<TimeOffItem[]> => {
       current: new Date(t.starts_at).getTime() <= now && now < new Date(t.ends_at).getTime(),
     };
   });
+});
+
+export type TodaySchedule = {
+  /** Horario normal de hoy según la semana. */
+  regular: TimeRange[];
+  /** Horario real de hoy: el normal menos los bloqueos. */
+  open: TimeRange[];
+  /** Bloqueos que afectan hoy (ej. "Vacaciones" o "15:00 – 17:00 · Trámite"). */
+  blocks: { label: string; allDay: boolean }[];
+};
+
+const toHHMM = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const minutesOf = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+/** Horario de hoy de un profesional, descontando los bloqueos del negocio o suyos. */
+export const getTodaySchedule = cache(async (memberId: string): Promise<TodaySchedule> => {
+  const current = await getCurrentBusiness();
+  if (!current) return { regular: [], open: [], blocks: [] };
+  const tz = current.business.timezone;
+
+  const week = await getWeekHours(memberId);
+  const regular = week[todayWeekday(tz)];
+  const today = todayInZone(tz);
+
+  // Ventana amplia y después filtro por fecha local (evita cálculos de zona en la consulta).
+  const now = Date.now();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("time_off")
+    .select("starts_at, ends_at, all_day, reason, member_id")
+    .eq("business_id", current.business.id)
+    .lt("starts_at", new Date(now + 36 * 3600_000).toISOString())
+    .gt("ends_at", new Date(now - 36 * 3600_000).toISOString());
+  if (error) throw new Error(`No se pudieron leer los bloqueos de hoy: ${error.message}`);
+
+  const blocks: TodaySchedule["blocks"] = [];
+  const cuts: [number, number][] = [];
+  for (const t of data) {
+    if (t.member_id && t.member_id !== memberId) continue;
+    const s = localParts(new Date(t.starts_at), tz);
+    const e = localParts(new Date(t.ends_at), tz);
+    if (s.ymd > today || e.ymd < today || (e.ymd === today && e.hhmm === "00:00")) continue;
+    const from = s.ymd < today ? 0 : minutesOf(s.hhmm);
+    const to = e.ymd > today ? 24 * 60 : minutesOf(e.hhmm);
+    cuts.push([from, to]);
+    const wholeDay = from === 0 && to === 24 * 60;
+    blocks.push({
+      allDay: wholeDay,
+      label: wholeDay ? (t.reason ?? "Bloqueado") : `${toHHMM(from)} – ${toHHMM(to)}${t.reason ? ` · ${t.reason}` : ""}`,
+    });
+  }
+
+  // Horario normal menos los bloqueos.
+  let open = regular.map((r) => [minutesOf(r.start), minutesOf(r.end)] as [number, number]);
+  for (const [cs, ce] of cuts) {
+    open = open.flatMap(([os, oe]) => {
+      if (ce <= os || cs >= oe) return [[os, oe] as [number, number]];
+      const pieces: [number, number][] = [];
+      if (cs > os) pieces.push([os, cs]);
+      if (ce < oe) pieces.push([ce, oe]);
+      return pieces;
+    });
+  }
+
+  return {
+    regular,
+    open: open.filter(([s, e]) => e - s >= 5).map(([s, e]) => ({ start: toHHMM(s), end: toHHMM(e) })),
+    blocks,
+  };
 });

@@ -62,6 +62,9 @@ Escala usada: título de página `text-2xl`–`text-3xl` · título de tarjeta `
 - Usarla donde se hable del **día**: Inicio, Agenda (vista día), Horarios (vista previa de la jornada), pantallas de marca.
 - En franjas angostas (`@container` < md) los bloques ocultan el texto.
 - No reemplazarla por un gráfico de barras ni una lista: es la firma visual del producto.
+- **Abierto / cerrado:** `openRanges` pinta las horas de atención en ámbar oscuro sólido y deja las cerradas rayadas. Con `rangeLabels` se escribe el horario dentro de cada tramo (`08–12`). El usuario pidió que se entienda sin interpretar colores: siempre que se muestre un horario, acompañarlo de texto (horas escritas, total del día).
+- `size="sm"` (compacta) existe, pero para pilas de días se prefiere el tamaño normal con `hourScale={false}` y una sola escala de horas abajo.
+- Vocabulario para el usuario: "horario", "pausa", "cerrado", "bloqueo". Evitar "franja" en la interfaz (resultó confuso).
 
 ## Patrones de componentes
 
@@ -74,6 +77,12 @@ Escala usada: título de página `text-2xl`–`text-3xl` · título de tarjeta `
 - **Esqueletos de carga:** `animate-pulse` con `bg-raised` / `bg-card` / `bg-inset` (nunca grises claros).
 - **Módulos sin construir:** `PagePlaceholder` (borde punteado, ícono del módulo, "Llega en el Sprint X").
 - **Datos que dependen de la sesión:** siempre dentro de `<Suspense>` con un esqueleto que imite el layout final (requisito de `cacheComponents`).
+- **Formularios largos (Configuración, Horarios):** barra flotante `sticky bottom-4` (`bg-popover/95`, blur) con "Tenés cambios sin guardar" + **Descartar** / **Guardar**; al guardar muestra "✓ … guardado" 3 s.
+- **Crear/editar un ítem (servicios, bloqueos):** `Sheet` a la derecha en escritorio (`sm:max-w-md`) y desde abajo en el celular (`useMediaQuery("(max-width: 639px)")`, `rounded-t-2xl`), con pie fijo Cancelar / acción principal.
+- **Listas de ítems:** una sola tarjeta con filas `divide-y`; acciones secundarias en menú `⋯` (`DropdownMenu`); borrar siempre con `AlertDialog`.
+- **Avisos de resultado:** línea `aria-live` arriba de la lista (`bg-success-soft` / `bg-destructive/10`) que se oculta a los 4 s.
+- **Horas:** `TimeSelect` (select nativo estilizado, cada 15 min) — en el celular abre la ruedita del sistema. **Fechas:** `Calendar` (react-day-picker, `locale={es}`, `weekStartsOn={1}`, celdas `--cell-size: --spacing(10)`).
+- **Montos y horas** siempre en `font-mono tabular` (`₲ 150.000`, `08:00`); formatear con `src/lib/format.ts` (no Intl, para que servidor y navegador coincidan).
 
 ## Evitar
 

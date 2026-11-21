@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <PagePlaceholder
       sprint="Sprint 5"
-      description="Registro de pagos y señas, e ingresos por período."
+      description="Registro de pagos e ingresos por período."
     />
   );
 }

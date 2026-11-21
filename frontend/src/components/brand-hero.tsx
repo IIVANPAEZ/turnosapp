@@ -15,7 +15,7 @@ const DEMO_DAY: DayStripItem[] = [
 const FEATURES = [
   { icon: CalendarClock, text: "Tus clientes reservan solos, 24/7" },
   { icon: BellRing, text: "Recordatorios por WhatsApp" },
-  { icon: Wallet, text: "Señas y caja del día en guaraníes" },
+  { icon: Wallet, text: "Tus servicios y precios en guaraníes" },
 ];
 
 /**
@@ -36,7 +36,7 @@ export function BrandHero({ className }: { className?: string }) {
               <span className="text-primary">siempre en orden.</span>
             </h2>
             <p className="mt-3 max-w-md text-sm text-muted-foreground sm:text-base">
-              Turnos, señas y recordatorios en un solo lugar, para profesionales de belleza y salud.
+              Turnos, clientes y recordatorios en un solo lugar, para profesionales de belleza y salud.
             </p>
           </div>
 

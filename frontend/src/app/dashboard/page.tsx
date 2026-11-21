@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils";
 import { DEFAULT_TIMEZONE, PUBLIC_SITE_DOMAIN } from "@/lib/config";
 import { requireBusiness } from "@/lib/auth/dal";
 import { MEMBER_COLORS } from "@/lib/business/members";
+import { WEEKDAYS } from "@/lib/schedule/constants";
+import { getTodaySchedule, getWeekHours } from "@/lib/schedule/data";
+import { visibleHours, weeklyTotal } from "@/lib/schedule/week";
+import { getServices } from "@/lib/services/data";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -36,8 +40,16 @@ type Step = { label: string; hint: string; done: boolean; href?: string; soon?: 
 
 async function Home() {
   const { business, member } = await requireBusiness();
+  const [services, week, today] = await Promise.all([
+    getServices(),
+    getWeekHours(member.id),
+    getTodaySchedule(member.id),
+  ]);
   const firstName = member.displayName.split(" ")[0];
   const publicUrl = `${PUBLIC_SITE_DOMAIN}/${business.slug}`;
+
+  const activeServices = services.filter((s) => s.isActive).length;
+  const hasHours = WEEKDAYS.some((d) => week[d.value].length > 0);
 
   const steps: Step[] = [
     { label: "Creá tu negocio", hint: business.name, done: true },
@@ -47,11 +59,28 @@ async function Home() {
       done: member.color !== MEMBER_COLORS[0].value,
       href: "/dashboard/profesionales",
     },
-    { label: "Cargá tus servicios", hint: "Duración, precio y seña", done: false, soon: true },
-    { label: "Definí tus horarios", hint: "Días y horas de atención", done: false, soon: true },
+    {
+      label: "Cargá tus servicios",
+      hint: services.length
+        ? `${activeServices} servicio${activeServices === 1 ? "" : "s"} visible${activeServices === 1 ? "" : "s"} para reservar`
+        : "Duración y precio de lo que ofrecés",
+      done: services.length > 0,
+      href: "/dashboard/servicios",
+    },
+    {
+      label: "Definí tus horarios",
+      hint: hasHours ? `${weeklyTotal(week)} por semana` : "Días y horas de atención",
+      done: hasHours,
+      href: "/dashboard/horarios",
+    },
     { label: "Compartí tu link de reservas", hint: "Por WhatsApp o Instagram", done: false, soon: true },
   ];
   const doneCount = steps.filter((s) => s.done).length;
+
+  // Estado de hoy para la tarjeta "Hoy".
+  const allDayBlock = today.blocks.find((b) => b.allDay);
+  const partialBlocks = today.blocks.filter((b) => !b.allDay);
+  const { from, to } = visibleHours(week);
 
   return (
     <>
@@ -64,11 +93,45 @@ async function Home() {
 
       <Card>
         <CardContent className="flex flex-col gap-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 className="font-medium">Hoy</h3>
-            <span className="text-xs text-muted-foreground">La agenda llega en el Sprint 3</span>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h3 className="font-medium">Hoy</h3>
+              {!hasHours ? (
+                <Link href="/dashboard/horarios" className="text-sm text-primary hover:underline">
+                  Cargá tus horarios →
+                </Link>
+              ) : allDayBlock ? (
+                <span className="text-sm text-warning">Hoy no atendés · {allDayBlock.label}</span>
+              ) : today.open.length ? (
+                <span className="text-sm text-muted-foreground">
+                  Atendés{" "}
+                  <span className="font-mono text-foreground tabular">
+                    {today.open.map((r) => `${r.start}–${r.end}`).join(" · ")}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">Hoy está cerrado</span>
+              )}
+            </div>
+            <span className="text-xs text-faint">Los turnos llegan con la Agenda (Sprint 3)</span>
           </div>
-          <DayStrip timeZone={business.timezone} />
+          <DayStrip
+            timeZone={business.timezone}
+            openRanges={hasHours ? today.open : undefined}
+            rangeLabels
+            from={from}
+            to={to}
+            emptyLabel={hasHours ? (allDayBlock ? "Bloqueado todo el día" : "Cerrado") : "Sin horario cargado"}
+          />
+          {partialBlocks.length > 0 && (
+            <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+              {partialBlocks.map((b) => (
+                <li key={b.label}>
+                  Bloqueado: <span className="font-mono tabular">{b.label}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
@@ -151,7 +214,11 @@ async function Home() {
               <span className="truncate font-mono text-[13px]">{publicUrl}</span>
               <CopyButton value={`https://${publicUrl}`} />
             </div>
-            <p className="text-xs text-faint">Se activa cuando cargues servicios y horarios.</p>
+            <p className="text-xs text-faint">
+              {services.length > 0 && hasHours
+                ? "Tu página se habilita muy pronto: la estamos terminando."
+                : `Para activarla, cargá ${[!services.length && "tus servicios", !hasHours && "tus horarios"].filter(Boolean).join(" y ")}.`}
+            </p>
           </CardContent>
         </Card>
       </div>
