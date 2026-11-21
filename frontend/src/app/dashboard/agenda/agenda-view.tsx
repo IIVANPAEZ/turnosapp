@@ -68,9 +68,11 @@ type AgendaViewProps = {
   onCreate?: (date: string, time: string) => void;
   /** Turno recién cargado: se resalta unos segundos. */
   highlightId?: string | null;
+  /** Tocar un turno abre su detalle. */
+  onOpen?: (id: string) => void;
 };
 
-export function AgendaView({ days, view, timeZone, onCreate, highlightId }: AgendaViewProps) {
+export function AgendaView({ days, view, timeZone, onCreate, highlightId, onOpen }: AgendaViewProps) {
   const now = useNowMinutes(timeZone);
   const range = visibleRange(days);
   // Con varios profesionales, cada turno muestra quién atiende (el color solo no alcanza).
@@ -81,8 +83,8 @@ export function AgendaView({ days, view, timeZone, onCreate, highlightId }: Agen
     return (
       <div className="flex flex-col gap-4">
         <DaySummary day={day} />
-        <AgendaGrid days={days} range={range} now={now} multi={multi} onCreate={onCreate} highlightId={highlightId} />
-        <InactiveList appointments={day.inactive} />
+        <AgendaGrid days={days} range={range} now={now} multi={multi} onCreate={onCreate} highlightId={highlightId} onOpen={onOpen} />
+        <InactiveList appointments={day.inactive} onOpen={onOpen} />
       </div>
     );
   }
@@ -91,7 +93,7 @@ export function AgendaView({ days, view, timeZone, onCreate, highlightId }: Agen
     <>
       {/* Escritorio y tablet: cuadrícula de la semana */}
       <div className="hidden md:block">
-        <AgendaGrid days={days} range={range} now={now} week multi={multi} onCreate={onCreate} highlightId={highlightId} />
+        <AgendaGrid days={days} range={range} now={now} week multi={multi} onCreate={onCreate} highlightId={highlightId} onOpen={onOpen} />
       </div>
 
       {/* Celular: lista por día */}
@@ -114,7 +116,7 @@ export function AgendaView({ days, view, timeZone, onCreate, highlightId }: Agen
               <ul className="divide-y border-t">
                 {d.appointments.map((a) => (
                   <li key={a.id}>
-                    <ListRow appointment={a} />
+                    <ListRow appointment={a} onOpen={onOpen} />
                   </li>
                 ))}
               </ul>
@@ -162,6 +164,7 @@ function AgendaGrid({
   multi,
   onCreate,
   highlightId,
+  onOpen,
 }: {
   days: AgendaDay[];
   range: { from: number; to: number };
@@ -170,6 +173,7 @@ function AgendaGrid({
   multi?: boolean;
   onCreate?: (date: string, time: string) => void;
   highlightId?: string | null;
+  onOpen?: (id: string) => void;
 }) {
   const slots: number[] = [];
   for (let m = range.from * 60; m < range.to * 60; m += SLOT) slots.push(m);
@@ -232,6 +236,7 @@ function AgendaGrid({
                   multi={multi}
                   onCreate={onCreate}
                   highlightId={highlightId}
+                  onOpen={onOpen}
                 />
               ))}
             </Fragment>
@@ -252,6 +257,7 @@ function Cell({
   multi,
   onCreate,
   highlightId,
+  onOpen,
 }: {
   day: AgendaDay;
   slot: number;
@@ -262,6 +268,7 @@ function Cell({
   multi?: boolean;
   onCreate?: (date: string, time: string) => void;
   highlightId?: string | null;
+  onOpen?: (id: string) => void;
 }) {
   const starting = day.appointments.filter((a) => a.startMin >= slot && a.startMin < slot + SLOT);
   const ongoing = day.appointments.filter((a) => a.startMin < slot && a.endMin > slot);
@@ -296,7 +303,7 @@ function Cell({
       )}
 
       {starting.map((a) => (
-        <AppointmentChip key={a.id} appointment={a} week={week} multi={multi} highlighted={a.id === highlightId} />
+        <AppointmentChip key={a.id} appointment={a} week={week} multi={multi} highlighted={a.id === highlightId} onOpen={onOpen} />
       ))}
 
       {create && free && (
@@ -324,23 +331,38 @@ function AppointmentChip({
   week,
   multi,
   highlighted,
+  onOpen,
 }: {
   appointment: AgendaAppointment;
   week?: boolean;
   multi?: boolean;
   highlighted?: boolean;
+  onOpen?: (id: string) => void;
 }) {
   const who = multi ? a.memberName.split(" ")[0] : null;
   return (
     <div
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (onOpen && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpen(a.id);
+        }
+      }}
       className={cn(
         "min-w-0 rounded-md border-l-[3px] bg-raised px-2 py-1.5 ring-1 ring-foreground/6 transition-shadow",
+        onOpen && "cursor-pointer outline-none hover:bg-[color-mix(in_oklab,var(--raised),white_4%)] focus-visible:ring-2 focus-visible:ring-ring",
         a.status === "completed" && "opacity-75",
         highlighted && "animate-pulse ring-2 ring-primary",
       )}
       style={{ borderLeftColor: a.memberColor }}
-      // Tocar un turno no abre "Nuevo turno" (en la Etapa 4 abrirá su detalle).
-      onClick={(e) => e.stopPropagation()}
+      // Tocar un turno abre su detalle (y no "Nuevo turno" de la celda).
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen?.(a.id);
+      }}
       title={`${a.start}–${a.end} · ${a.clientName} · ${a.serviceName}${who ? ` · ${a.memberName}` : ""} · ${STATUS_LABELS[a.status]}`}
     >
       {week ? (
@@ -400,9 +422,23 @@ function StatusChip({ status, label }: { status: keyof typeof STATUS_STYLES; lab
 }
 
 /** Fila de lista (semana en el celular y lista de cancelados). */
-function ListRow({ appointment: a, muted }: { appointment: AgendaAppointment; muted?: boolean }) {
+function ListRow({
+  appointment: a,
+  muted,
+  onOpen,
+}: {
+  appointment: AgendaAppointment;
+  muted?: boolean;
+  onOpen?: (id: string) => void;
+}) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
+    <div
+      className={cn("flex items-center gap-3 px-4 py-3", onOpen && "cursor-pointer transition-colors hover:bg-raised")}
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen ? () => onOpen(a.id) : undefined}
+      onKeyDown={onOpen ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onOpen(a.id)) : undefined}
+    >
       <span className="h-8 w-0.75 shrink-0 rounded-full" style={{ backgroundColor: a.memberColor }} aria-hidden="true" />
       <div className="w-18 shrink-0">
         <p className={cn("font-mono text-sm tabular", muted && "text-muted-foreground")}>{a.start}</p>
@@ -425,7 +461,7 @@ function ListRow({ appointment: a, muted }: { appointment: AgendaAppointment; mu
 }
 
 /** Cancelados, "no vino" y reprogramados: no ocupan lugar en la cuadrícula. */
-function InactiveList({ appointments }: { appointments: AgendaAppointment[] }) {
+function InactiveList({ appointments, onOpen }: { appointments: AgendaAppointment[]; onOpen?: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   if (!appointments.length) return null;
   const n = appointments.length;
@@ -447,7 +483,7 @@ function InactiveList({ appointments }: { appointments: AgendaAppointment[] }) {
         <ul className="divide-y border-t">
           {appointments.map((a) => (
             <li key={a.id}>
-              <ListRow appointment={a} muted />
+              <ListRow appointment={a} muted onOpen={onOpen} />
             </li>
           ))}
         </ul>

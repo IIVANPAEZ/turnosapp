@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import type { AgendaDay } from "@/lib/agenda/data";
 import { AgendaToolbar, agendaHref, type AgendaView as View } from "./agenda-toolbar";
 import { AgendaView } from "./agenda-view";
+import { AppointmentDetail } from "./appointment-detail";
 import { NewAppointmentForm, type ServiceOption } from "./new-appointment-form";
 
 type AgendaScreenProps = {
@@ -19,16 +20,20 @@ type AgendaScreenProps = {
   timeZone: string;
   services: ServiceOption[];
   today: string;
+  businessName: string;
 };
 
 /** Agenda + panel "Nuevo turno" (desde el botón, el "+" flotante o tocando una celda). */
-export function AgendaScreen({ toolbar, days, view, timeZone, services, today }: AgendaScreenProps) {
+export function AgendaScreen({ toolbar, days, view, timeZone, services, today, businessName }: AgendaScreenProps) {
   const router = useRouter();
   const isMobile = useMediaQuery("(max-width: 639px)");
   // Panel: null = cerrado; si no, día y hora precargados.
   const [draft, setDraft] = useState<{ date: string; time?: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  // Turno abierto en el panel de detalle (se busca en los datos actuales: siempre al día).
+  const [openId, setOpenId] = useState<string | null>(null);
+  const opened = openId ? days.flatMap((d) => [...d.appointments, ...d.inactive]).find((a) => a.id === openId) : null;
 
   useEffect(() => {
     if (!notice) return;
@@ -60,7 +65,14 @@ export function AgendaScreen({ toolbar, days, view, timeZone, services, today }:
         </p>
       )}
 
-      <AgendaView days={days} view={view} timeZone={timeZone} onCreate={openNew} highlightId={highlightId} />
+      <AgendaView
+        days={days}
+        view={view}
+        timeZone={timeZone}
+        onCreate={openNew}
+        highlightId={highlightId}
+        onOpen={setOpenId}
+      />
 
       {/* Celular: botón flotante */}
       <Button
@@ -97,6 +109,36 @@ export function AgendaScreen({ toolbar, days, view, timeZone, services, today }:
                 if (!days.some((d) => d.date === date)) router.push(agendaHref(date, view));
               }}
             />
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Detalle del turno */}
+      <Sheet open={!!opened} onOpenChange={(open) => !open && setOpenId(null)}>
+        <SheetContent
+          side={isMobile ? "bottom" : "right"}
+          className={cn("gap-0 p-0", isMobile ? "max-h-[94dvh] rounded-t-2xl" : "w-full sm:max-w-md")}
+        >
+          {opened && (
+            <>
+              <SheetHeader className="px-5 pt-5 pb-3">
+                <SheetTitle className="text-lg">{opened.clientName}</SheetTitle>
+                <SheetDescription>Detalle del turno</SheetDescription>
+              </SheetHeader>
+              <AppointmentDetail
+                key={opened.id}
+                appointment={opened}
+                businessName={businessName}
+                timeZone={timeZone}
+                today={today}
+                view={view}
+                onChanged={(message, highlight, goToDate) => {
+                  setNotice(message);
+                  if (highlight) setHighlightId(highlight);
+                  if (goToDate && !days.some((d) => d.date === goToDate)) router.push(agendaHref(goToDate, view));
+                }}
+              />
+            </>
           )}
         </SheetContent>
       </Sheet>

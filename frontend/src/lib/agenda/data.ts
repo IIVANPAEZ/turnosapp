@@ -38,8 +38,9 @@ export type AgendaAppointment = {
   cancelReason: string | null;
   memberColor: string;
   memberName: string;
-  /** Si se reprogramó: a dónde ("Jue 26, 14:00"). */
+  /** Si se reprogramó: a dónde ("Jue 26, 14:00") y la fecha del turno nuevo. */
   rescheduledTo: string | null;
+  rescheduledToDate: string | null;
 };
 
 export type AgendaBlock = { startMin: number; endMin: number; label: string; allDay: boolean };
@@ -103,12 +104,12 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
 
   // A dónde se movieron los reprogramados (para mostrar "→ Jue 26, 14:00").
   const movedIds = apptRes.data.map((a) => a.rescheduled_to).filter((x): x is string => !!x);
-  const movedTo = new Map<string, string>();
+  const movedTo = new Map<string, { label: string; date: string }>();
   if (movedIds.length) {
     const { data } = await supabase.from("appointments").select("id, starts_at").in("id", movedIds);
     for (const m of data ?? []) {
       const p = localParts(new Date(m.starts_at), tz);
-      movedTo.set(m.id, `${shortDayLabel(p.ymd)}, ${p.hhmm}`);
+      movedTo.set(m.id, { label: `${shortDayLabel(p.ymd)}, ${p.hhmm}`, date: p.ymd });
     }
   }
 
@@ -151,7 +152,8 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
       cancelReason: a.cancel_reason,
       memberColor: a.member?.color ?? "#6366f1",
       memberName: a.member?.display_name ?? "",
-      rescheduledTo: a.rescheduled_to ? (movedTo.get(a.rescheduled_to) ?? "otra fecha") : null,
+      rescheduledTo: a.rescheduled_to ? (movedTo.get(a.rescheduled_to)?.label ?? "otra fecha") : null,
+      rescheduledToDate: a.rescheduled_to ? (movedTo.get(a.rescheduled_to)?.date ?? null) : null,
     };
     const occupies = !a.rescheduled_to && (a.status === "pending" || a.status === "confirmed" || a.status === "completed");
     (occupies ? day.appointments : day.inactive).push(appt);

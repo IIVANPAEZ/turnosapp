@@ -50,6 +50,7 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/dashboard/agenda
       view={view}
       timeZone={tz}
       today={today}
+      businessName={business.name}
       // Solo servicios activos: los pausados no se ofrecen al cargar turnos.
       services={services
         .filter((s) => s.isActive)

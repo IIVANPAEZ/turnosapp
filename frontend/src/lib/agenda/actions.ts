@@ -55,8 +55,11 @@ export type DayAvailability = {
   busy: { startMin: number; endMin: number; label: string }[];
 };
 
-/** Lo necesario para calcular los horarios libres de un día del profesional actual. */
-export async function getDayAvailability(date: string): Promise<DayAvailability | null> {
+/**
+ * Lo necesario para calcular los horarios libres de un día del profesional actual.
+ * `excludeId`: turno a ignorar (al reprogramar, su propio horario cuenta como libre).
+ */
+export async function getDayAvailability(date: string, excludeId?: string): Promise<DayAvailability | null> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   const current = await requireCurrent();
   const tz = current.business.timezone;
@@ -71,7 +74,7 @@ export async function getDayAvailability(date: string): Promise<DayAvailability 
     hours: day.hours,
     blocks: day.blocks.map((b) => ({ startMin: b.startMin, endMin: b.endMin, label: b.label })),
     busy: day.appointments
-      .filter((a) => a.memberId === current.member.id)
+      .filter((a) => a.memberId === current.member.id && a.id !== excludeId)
       .map((a) => ({ startMin: a.startMin, endMin: a.endMin, label: `${a.clientName} (${a.start}–${a.end})` })),
   };
 }
@@ -200,4 +203,119 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
     id: id as string,
     message: `Turno cargado · ${shortDayLabel(v.date)}, ${v.time} · ${clientName}`,
   };
+}
+
+export type AppointmentActionResult = { ok: true; message: string; newId?: string; newDate?: string } | { ok: false; error: string };
+
+/** Busca el turno del negocio que ocupa [inicio, fin) de un día, para nombrarlo en los errores. */
+async function clashLabel(date: string, startMin: number, endMin: number, excludeId?: string) {
+  const day = await getDayAvailability(date, excludeId);
+  return day?.busy.find((b) => b.startMin < endMin && startMin < b.endMin)?.label ?? null;
+}
+
+/** Datos mínimos de un turno (y verificación de que es del negocio actual). */
+async function loadAppointment(id: string) {
+  const current = await requireCurrent();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("appointments")
+    .select("id, starts_at, ends_at, status, rescheduled_to")
+    .eq("id", id)
+    .eq("business_id", current.business.id)
+    .maybeSingle();
+  return { current, supabase, appt: data };
+}
+
+const STATUS_DONE: Record<string, string> = {
+  confirmed: "Turno confirmado.",
+  completed: "Turno finalizado.",
+  no_show: "Marcado como “No vino”.",
+  cancelled: "Turno cancelado.",
+  pending: "Turno marcado como “Por confirmar”.",
+};
+
+/** Confirmar, finalizar, no vino, cancelar o deshacer (volver a confirmado). */
+export async function setAppointmentStatus(
+  id: string,
+  status: "pending" | "confirmed" | "completed" | "no_show" | "cancelled",
+  cancelReason?: string,
+): Promise<AppointmentActionResult> {
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "Turno inválido." };
+  const { current, supabase, appt } = await loadAppointment(id);
+  if (!appt) return { ok: false, error: "No encontramos ese turno." };
+  if (appt.rescheduled_to) return { ok: false, error: "Este turno fue reprogramado: cambiá el turno nuevo." };
+
+  // "Finalizar" y "No vino" solo desde la hora de inicio.
+  if ((status === "completed" || status === "no_show") && new Date(appt.starts_at).getTime() > Date.now()) {
+    return { ok: false, error: "Todavía no llegó la hora de este turno." };
+  }
+
+  const { error } = await supabase.rpc("set_appointment_status", {
+    p_appointment_id: id,
+    p_status: status,
+    p_cancel_reason: status === "cancelled" ? (cancelReason?.trim().slice(0, 120) || undefined) : undefined,
+  });
+  if (error) {
+    if (error.code === "23P01") {
+      // Al deshacer, el lugar ya lo ocupa otro turno.
+      const tz = current.business.timezone;
+      const s = localParts(new Date(appt.starts_at), tz);
+      const e = localParts(new Date(appt.ends_at), tz);
+      const who = await clashLabel(s.ymd, s.minutes, e.ymd === s.ymd ? e.minutes : 24 * 60, id);
+      return { ok: false, error: who ? `Ese horario ahora lo ocupa ${who}.` : "Ese horario ahora está ocupado por otro turno." };
+    }
+    console.error("[agenda] set_appointment_status:", error.code, error.message);
+    return { ok: false, error: "No pudimos cambiar el turno. Probá de nuevo." };
+  }
+
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, message: STATUS_DONE[status] };
+}
+
+/** Mueve el turno a otra fecha y hora (crea el nuevo y marca el viejo, todo junto). */
+export async function rescheduleAppointment(id: string, date: string, time: string): Promise<AppointmentActionResult> {
+  if (!z.uuid().safeParse(id).success || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    return { ok: false, error: "Revisá la fecha y la hora." };
+  }
+  const { supabase, appt } = await loadAppointment(id);
+  if (!appt) return { ok: false, error: "No encontramos ese turno." };
+
+  const { data: newId, error } = await supabase.rpc("reschedule_appointment", {
+    p_appointment_id: id,
+    p_date: date,
+    p_time: time,
+  });
+  if (error) {
+    if (error.code === "23P01") {
+      const start = Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+      const duration = (new Date(appt.ends_at).getTime() - new Date(appt.starts_at).getTime()) / 60000;
+      const who = await clashLabel(date, start, start + duration, id);
+      return { ok: false, error: who ? `Se pisa con ${who}. Elegí otro horario.` : "Ese horario se pisa con otro turno." };
+    }
+    if (error.code === "P0001") return { ok: false, error: "Este turno ya no se puede reprogramar." };
+    console.error("[agenda] reschedule_appointment:", error.code, error.message);
+    return { ok: false, error: "No pudimos reprogramar el turno. Probá de nuevo." };
+  }
+
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, message: `Turno reprogramado al ${shortDayLabel(date)}, ${time}.`, newId: newId as string, newDate: date };
+}
+
+/** Edita la nota del turno. */
+export async function updateAppointmentNotes(id: string, notes: string): Promise<AppointmentActionResult> {
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "Turno inválido." };
+  const clean = notes.trim().slice(0, 300);
+  const { current, supabase } = await loadAppointment(id);
+  const { data, error } = await supabase
+    .from("appointments")
+    .update({ notes: clean || null })
+    .eq("id", id)
+    .eq("business_id", current.business.id)
+    .select("id");
+  if (error || !data?.length) {
+    if (error) console.error("[agenda] update notes:", error.code, error.message);
+    return { ok: false, error: "No pudimos guardar la nota." };
+  }
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, message: "Nota guardada." };
 }

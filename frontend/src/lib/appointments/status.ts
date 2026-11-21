@@ -19,7 +19,7 @@ export type TodayAppointment = {
 };
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
-  pending: "Pendiente",
+  pending: "Por confirmar",
   confirmed: "Confirmado",
   completed: "Finalizado",
   cancelled: "Cancelado",
