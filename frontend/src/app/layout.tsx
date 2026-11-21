@@ -18,7 +18,7 @@ const jetbrains = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
-  description: "Gestión de turnos para profesionales independientes.",
+  description: "Gestión de turnos para cualquier negocio que trabaje con citas.",
 };
 
 export const viewport: Viewport = {

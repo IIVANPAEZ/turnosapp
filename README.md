@@ -2,7 +2,7 @@
 
 > Nombre de trabajo. Se cambia en `frontend/src/lib/config.ts` (`APP_NAME`, y `PUBLIC_SITE_DOMAIN` para el dominio de las páginas públicas).
 
-SaaS de gestión de turnos para profesionales independientes y pequeños negocios de belleza y salud. Mercado inicial: Paraguay (español, guaraníes PYG, zona horaria `America/Asuncion`).
+SaaS de gestión de turnos para cualquier negocio o profesional que trabaje con citas (peluquerías, consultorios, estudios, talleres, clases, etc.). Mercado inicial: Paraguay (español, guaraníes PYG, zona horaria `America/Asuncion`).
 
 ## Stack
 

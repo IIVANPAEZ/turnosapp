@@ -5,7 +5,7 @@
 
 ## Dirección
 
-- **Quién lo usa:** profesionales independientes de belleza y salud en Paraguay (manicurista, barbero, odontóloga, kinesiólogo). Abren la app **en el celular**, entre un cliente y otro, para ver *cómo viene el día*. Viven en WhatsApp.
+- **Quién lo usa:** cualquier negocio o profesional que trabaja con turnos en Paraguay (barbería, consultorio, estudio de tatuajes, taller, profesor particular, etc.). Los textos de la interfaz son **generales**: nunca "para belleza y salud". Abren la app **en el celular**, entre un cliente y otro, para ver *cómo viene el día*. Viven en WhatsApp.
 - **Cómo se siente:** oscuro, moderno y **unisex**. Ordenado y tranquilo, con un solo punto de calor (el ámbar). Nada de rosa ni ciruela: el usuario los descartó por "muy de mujer".
 - **Origen de la paleta:** la *tierra colorada* al atardecer (ámbar) sobre una mesa de trabajo oscura (grafito).
 

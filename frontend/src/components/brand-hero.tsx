@@ -50,7 +50,7 @@ export function BrandHero({ className }: { className?: string }) {
               <span className="text-primary">siempre en orden.</span>
             </h2>
             <p className="mt-3 max-w-md text-sm text-muted-foreground sm:text-base">
-              Turnos, clientes y recordatorios en un solo lugar, para profesionales de belleza y salud.
+              Turnos, clientes y recordatorios en un solo lugar, para cualquier negocio que trabaje con turnos.
             </p>
           </div>
 

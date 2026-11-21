@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          business_id: string
+          cancel_reason: string | null
+          client_id: string
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          member_id: string
+          notes: string | null
+          price: number
+          price_type: Database["public"]["Enums"]["price_type"]
+          rescheduled_to: string | null
+          service_id: string
+          service_name: string
+          source: Database["public"]["Enums"]["appointment_source"]
+          starts_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+          status_changed_at: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          cancel_reason?: string | null
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          price: number
+          price_type?: Database["public"]["Enums"]["price_type"]
+          rescheduled_to?: string | null
+          service_id: string
+          service_name: string
+          source?: Database["public"]["Enums"]["appointment_source"]
+          starts_at: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+          status_changed_at?: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          cancel_reason?: string | null
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          price?: number
+          price_type?: Database["public"]["Enums"]["price_type"]
+          rescheduled_to?: string | null
+          service_id?: string
+          service_name?: string
+          source?: Database["public"]["Enums"]["appointment_source"]
+          starts_at?: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+          status_changed_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_client_fk"
+            columns: ["business_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["business_id", "id"]
+          },
+          {
+            foreignKeyName: "appointments_member_fk"
+            columns: ["business_id", "member_id"]
+            isOneToOne: false
+            referencedRelation: "business_members"
+            referencedColumns: ["business_id", "id"]
+          },
+          {
+            foreignKeyName: "appointments_rescheduled_to_fkey"
+            columns: ["rescheduled_to"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_service_fk"
+            columns: ["business_id", "service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["business_id", "id"]
+          },
+        ]
+      }
       business_members: {
         Row: {
           business_id: string
@@ -108,6 +210,44 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: []
+      }
+      clients: {
+        Row: {
+          business_id: string
+          created_at: string
+          full_name: string
+          id: string
+          phone: string | null
+          phone_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          phone_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          phone_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -288,6 +428,20 @@ export type Database = {
         }
         Returns: string
       }
+      create_appointment: {
+        Args: {
+          p_client_id: string
+          p_date: string
+          p_duration_minutes?: number
+          p_member_id: string
+          p_notes?: string
+          p_service_id: string
+          p_source?: Database["public"]["Enums"]["appointment_source"]
+          p_status?: Database["public"]["Enums"]["appointment_status"]
+          p_time: string
+        }
+        Returns: string
+      }
       create_business: {
         Args: {
           p_category: Database["public"]["Enums"]["business_category"]
@@ -300,12 +454,36 @@ export type Database = {
         Returns: string
       }
       is_slug_available: { Args: { p_slug: string }; Returns: boolean }
+      reschedule_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_date: string
+          p_duration_minutes?: number
+          p_time: string
+        }
+        Returns: string
+      }
+      set_appointment_status: {
+        Args: {
+          p_appointment_id: string
+          p_cancel_reason?: string
+          p_status: Database["public"]["Enums"]["appointment_status"]
+        }
+        Returns: undefined
+      }
       set_working_hours: {
         Args: { p_hours: Json; p_member_id: string }
         Returns: undefined
       }
     }
     Enums: {
+      appointment_source: "manual" | "online"
+      appointment_status:
+        | "pending"
+        | "confirmed"
+        | "completed"
+        | "cancelled"
+        | "no_show"
       business_category: "beauty" | "health" | "other"
       member_role: "owner" | "admin" | "staff"
       price_type: "fixed" | "from"
@@ -436,6 +614,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      appointment_source: ["manual", "online"],
+      appointment_status: [
+        "pending",
+        "confirmed",
+        "completed",
+        "cancelled",
+        "no_show",
+      ],
       business_category: ["beauty", "health", "other"],
       member_role: ["owner", "admin", "staff"],
       price_type: ["fixed", "from"],
