@@ -484,7 +484,16 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "no_show"
-      business_category: "beauty" | "health" | "other"
+      business_category:
+        | "beauty"
+        | "health"
+        | "wellness"
+        | "education"
+        | "professional"
+        | "pets"
+        | "automotive"
+        | "tattoo"
+        | "other"
       member_role: "owner" | "admin" | "staff"
       price_type: "fixed" | "from"
     }
@@ -622,7 +631,17 @@ export const Constants = {
         "cancelled",
         "no_show",
       ],
-      business_category: ["beauty", "health", "other"],
+      business_category: [
+        "beauty",
+        "health",
+        "wellness",
+        "education",
+        "professional",
+        "pets",
+        "automotive",
+        "tattoo",
+        "other",
+      ],
       member_role: ["owner", "admin", "staff"],
       price_type: ["fixed", "from"],
     },

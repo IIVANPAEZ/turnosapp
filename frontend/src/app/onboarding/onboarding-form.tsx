@@ -66,7 +66,7 @@ export function OnboardingForm({ defaultWhatsapp }: OnboardingFormProps) {
           <FieldLabel htmlFor="name">Nombre del negocio</FieldLabel>
           <Input
             id="name"
-            placeholder="Ej.: Salón Ana"
+            placeholder="Ej.: Estudio Ana"
             autoComplete="organization"
             aria-invalid={!!errors.name}
             {...register("name", {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useOptimistic, useState, useTransition } from "react";
-import { Check, CircleAlert, Copy, Loader2, MoreHorizontal, Pencil, Plus, Scissors, Trash2 } from "lucide-react";
+import { Check, CircleAlert, Copy, Loader2, MoreHorizontal, Pencil, Plus, Tags, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -294,7 +294,7 @@ function TemplatesPicker({
       <div className="relative mx-auto flex max-w-xl flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex size-12 items-center justify-center rounded-2xl border bg-card text-primary">
-            <Scissors className="size-5" />
+            <Tags className="size-5" />
           </div>
           <div>
             <h3 className="text-lg font-semibold tracking-tight">Cargá tus servicios en segundos</h3>

@@ -79,7 +79,7 @@ export function ServiceForm({ service, onDone, onCancel }: ServiceFormProps) {
             <FieldLabel htmlFor="service-name">Nombre</FieldLabel>
             <Input
               id="service-name"
-              placeholder="Ej.: Corte + barba"
+              placeholder="Ej.: Consulta inicial"
               autoComplete="off"
               aria-invalid={!!errors.name}
               {...register("name")}
@@ -181,7 +181,7 @@ export function ServiceForm({ service, onDone, onCancel }: ServiceFormProps) {
             <Textarea
               id="service-description"
               rows={2}
-              placeholder="Ej.: Incluye lavado y secado."
+              placeholder="Ej.: Incluye materiales."
               aria-invalid={!!errors.description}
               {...register("description")}
             />

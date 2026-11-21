@@ -2,7 +2,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   Users,
-  Scissors,
+  Tags,
   Clock,
   UserRound,
   Wallet,
@@ -35,7 +35,7 @@ export const dashboardNav: NavSection[] = [
   {
     label: "Negocio",
     items: [
-      { href: "/dashboard/servicios", label: "Servicios", icon: Scissors },
+      { href: "/dashboard/servicios", label: "Servicios", icon: Tags },
       { href: "/dashboard/horarios", label: "Horarios", icon: Clock },
       { href: "/dashboard/profesionales", label: "Profesionales", icon: UserRound },
     ],

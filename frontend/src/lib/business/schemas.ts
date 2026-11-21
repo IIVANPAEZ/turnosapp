@@ -6,9 +6,15 @@ export type BusinessCategory = Database["public"]["Enums"]["business_category"];
 
 /** Rubros en el orden y con los textos que ve el usuario. */
 export const BUSINESS_CATEGORIES = [
-  { value: "beauty", label: "Belleza", hint: "Peluquería, uñas, estética, barbería" },
+  { value: "beauty", label: "Belleza y estética", hint: "Peluquería, barbería, uñas, estética" },
   { value: "health", label: "Salud", hint: "Odontología, kinesiología, nutrición" },
-  { value: "other", label: "Otro", hint: "Cualquier servicio con turnos" },
+  { value: "wellness", label: "Bienestar y deporte", hint: "Masajes, yoga, entrenador personal" },
+  { value: "education", label: "Clases y educación", hint: "Profesor particular, idiomas, música" },
+  { value: "professional", label: "Servicios profesionales", hint: "Abogado, contador, psicólogo, asesor" },
+  { value: "pets", label: "Mascotas", hint: "Peluquería canina, veterinaria" },
+  { value: "automotive", label: "Autos y técnicos", hint: "Lavadero, mecánica, service técnico" },
+  { value: "tattoo", label: "Tatuajes y arte", hint: "Tatuajes, piercing, maquillaje artístico" },
+  { value: "other", label: "Otro", hint: "Cualquier negocio con turnos" },
 ] as const satisfies ReadonlyArray<{ value: BusinessCategory; label: string; hint: string }>;
 
 const categoryValues = BUSINESS_CATEGORIES.map((c) => c.value) as [BusinessCategory, ...BusinessCategory[]];

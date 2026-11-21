@@ -131,7 +131,7 @@ export function SettingsForm({ business, canEdit }: SettingsFormProps) {
               <Textarea
                 id="description"
                 rows={3}
-                placeholder="Ej.: Barbería clásica en Villa Morra. Cortes, barba y perfilado con turno."
+                placeholder="Ej.: Atendemos con turno en Villa Morra, de lunes a sábado."
                 aria-invalid={!!errors.description}
                 {...register("description")}
               />
