@@ -166,6 +166,10 @@ export type Database = {
       businesses: {
         Row: {
           address: string | null
+          booking_auto_confirm: boolean
+          booking_enabled: boolean
+          booking_max_days: number
+          booking_min_notice_minutes: number
           category: Database["public"]["Enums"]["business_category"]
           city: string | null
           created_at: string
@@ -181,6 +185,10 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          booking_auto_confirm?: boolean
+          booking_enabled?: boolean
+          booking_max_days?: number
+          booking_min_notice_minutes?: number
           category?: Database["public"]["Enums"]["business_category"]
           city?: string | null
           created_at?: string
@@ -196,6 +204,10 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          booking_auto_confirm?: boolean
+          booking_enabled?: boolean
+          booking_max_days?: number
+          booking_min_notice_minutes?: number
           category?: Database["public"]["Enums"]["business_category"]
           city?: string | null
           created_at?: string
@@ -428,6 +440,26 @@ export type Database = {
         }
         Returns: string
       }
+      book_appointment: {
+        Args: {
+          p_date: string
+          p_honeypot?: string
+          p_name: string
+          p_notes?: string
+          p_phone: string
+          p_service_id: string
+          p_slug: string
+          p_time: string
+        }
+        Returns: {
+          appointment_id: string
+          duration_minutes: number
+          price: number
+          price_type: Database["public"]["Enums"]["price_type"]
+          service_name: string
+          status: Database["public"]["Enums"]["appointment_status"]
+        }[]
+      }
       create_appointment: {
         Args: {
           p_client_id: string
@@ -454,6 +486,44 @@ export type Database = {
         Returns: string
       }
       is_slug_available: { Args: { p_slug: string }; Returns: boolean }
+      public_availability: {
+        Args: {
+          p_days?: number
+          p_from: string
+          p_service_id: string
+          p_slug: string
+        }
+        Returns: {
+          day: string
+          slot: string
+        }[]
+      }
+      public_business: {
+        Args: { p_slug: string }
+        Returns: {
+          address: string
+          booking_enabled: boolean
+          booking_max_days: number
+          category: Database["public"]["Enums"]["business_category"]
+          city: string
+          description: string
+          name: string
+          slug: string
+          timezone: string
+          whatsapp: string
+        }[]
+      }
+      public_services: {
+        Args: { p_slug: string }
+        Returns: {
+          description: string
+          duration_minutes: number
+          id: string
+          name: string
+          price: number
+          price_type: Database["public"]["Enums"]["price_type"]
+        }[]
+      }
       reschedule_appointment: {
         Args: {
           p_appointment_id: string
