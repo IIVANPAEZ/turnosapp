@@ -83,6 +83,25 @@ Escala usada: título de página `text-2xl`–`text-3xl` · título de tarjeta `
 - **Detalle** (`appointment-detail.tsx`): chip de estado, fecha y horario en mono, servicio y precio; tarjeta **Contacto** (celular, Llamar, botones de WhatsApp en verde `bg-success-soft`); nota editable; acciones fijas abajo según estado y hora. Cancelar y reprogramar abren un recuadro dentro del panel (no otro diálogo). Después: tarjeta verde "¿Le avisás? → Avisar por WhatsApp".
 - Estados: **"Por confirmar"** (no "Pendiente"), Confirmado, Finalizado, No vino, Cancelado, "Reprogramado → Lun 23, 14:00". **"Sin cerrar"** = ya pasó y sigue abierto (chip ámbar + botones Vino / No vino en el Inicio).
 
+## Página pública de reservas (`/[slug]`)
+
+- Una sola columna `max-w-2xl` sobre `.glow-ambar`, pensada primero para el celular. Encabezado: inicial del negocio en un cuadrado ámbar `size-14 rounded-2xl`, nombre `text-2xl`, rubro, descripción, dirección con `MapPin` y botón verde "Consultar por WhatsApp".
+- **Pasos numerados** (`StepTitle`: círculo `size-6 bg-raised` mono + título). Un paso que todavía no aplica se ve con `opacity-50` y una frase guía.
+- **Servicios:** tarjetas radio (círculo que se llena en ámbar), duración con `Clock`, precio mono a la derecha ("desde" encima).
+- **Tira de días:** botones `w-[4.5rem]` que se deslizan de costado (`snap-x`, a sangre en el celular y dentro de la columna desde `sm`): día de la semana / número grande / mes / "N libres" en verde o "Sin lugar" (deshabilitado, `bg-inset`). Al final, "Más días" con borde punteado.
+- **Horarios:** grilla `grid-cols-4 sm:grid-cols-6` de botones `h-11` mono, separados en Mañana / Tarde; el elegido va relleno en ámbar.
+- **Barra de resumen fija abajo** (`bg-popover/95` + blur, respeta `safe-area-inset-bottom`): servicio + "Lun 23 · 10:30 · ₲ 40.000" y la acción principal (Continuar / Confirmar reserva).
+- **Fecha destacada:** bloque `w-14 rounded-xl bg-primary-soft text-primary` con día corto / número / mes (en "Tus datos" y en "¡Listo!").
+- **Pantalla "¡Listo!":** círculo verde con ✓, "¡Listo, tu turno está reservado!" siempre; la frase y la etiqueta (Confirmado / Por confirmar) cambian según el estado. Botones a lo ancho en el celular: "Agregar a mi calendario" (neutro) y "Escribir al negocio" (verde).
+- Avisos dentro del flujo: horario perdido = `bg-warning-soft text-warning` con scroll al paso 3; error de datos = `bg-destructive/10`.
+
+## Reservas online en el panel
+
+- **Pastillas de opciones fijas** (Configuración → Reservas online): `h-9 rounded-lg border bg-inset`, elegida `border-primary/70 bg-primary-soft text-primary`. Interruptor con título y frase que explica el estado actual (`ToggleRow`).
+- **Marca online:** ícono `Globe` en ámbar (`text-primary`): "Online" en la vista día, solo el ícono en semana, chip `bg-primary-soft` "Reservado online" en el detalle.
+- **Aviso en Inicio:** tarjeta con borde `border-primary/25`, filas `divide-y` con fecha mono, cliente, servicio y botones `h-8` (WhatsApp verde cuadrado + Confirmar ámbar); al confirmar la fila queda "✓ Confirmado" + "Avisarle".
+- **Tarjeta "Tu página de reservas":** chip de estado (Activa verde / Pausada ámbar / Falta configurar neutro), link mono en `bg-inset` con "Copiar", y dos botones: "Ver mi página" (neutro) y "Compartir" (verde).
+
 ## Patrones de componentes
 
 - **Pantallas públicas** (landing, login, registro, recuperar): `BrandHero` (resplandor `.glow-ambar`, titular, tira del día de ejemplo) + formulario directo sobre el fondo con `AuthCard` (sin tarjeta). Celular: marca arriba; escritorio: lado a lado.

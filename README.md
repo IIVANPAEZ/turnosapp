@@ -21,11 +21,13 @@ SaaS de gestión de turnos para cualquier negocio o profesional que trabaje con 
 │       ├── app/
 │       │   ├── (auth)/       /login, /registro, /recuperar, /actualizar-clave
 │       │   ├── auth/confirm/ Destino de los links de los emails de Supabase
+│       │   ├── (public)/[slug]/ Página pública de reservas (turnosapp.com/<negocio>)
 │       │   ├── onboarding/   Alta del negocio (primer ingreso)
 │       │   └── dashboard/    Panel privado
 │       ├── components/       UI (shadcn en ui/), la tira del día, piezas por módulo
 │       ├── lib/
-│       │   ├── supabase/     Clientes (navegador/servidor), proxy de sesión, tipos generados
+│       │   ├── supabase/     Clientes (navegador/servidor/público sin sesión), proxy de sesión, tipos generados
+│       │   ├── public/       Página pública: datos del negocio, horarios libres, reservar, archivo .ics
 │       │   ├── auth/         DAL (quién es el usuario y su negocio), Server Actions, validaciones
 │       │   ├── business/     Onboarding, configuración del negocio, slug, profesionales
 │       │   ├── services/     Servicios: reglas, plantillas por rubro, datos y acciones
@@ -113,6 +115,7 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 - Las altas sensibles pasan por funciones de la base (`create_business`, `set_working_hours`, `add_time_off`), que validan y guardan todo en una sola transacción.
 - Reglas de negocio en la base: nombres de servicio únicos por negocio, duraciones en múltiplos de 5, franjas horarias sin superposición (exclusión con `btree_gist`), fechas de bloqueos convertidas con la zona horaria del negocio.
 - Las funciones auxiliares de seguridad viven en el esquema `private` (no expuesto en la API).
+- **Página pública (sin sesión):** quien no tiene sesión no puede leer ni escribir ninguna tabla. Solo puede usar 4 funciones de la base: `public_business`, `public_services`, `public_availability` (devuelve solo `{día, horario}`, nunca datos de otros clientes) y `book_appointment` (valida todo de nuevo, evita reservas simultáneas con la exclusión de turnos, campo trampa contra bots, máximo 3 reservas por venir por celular). El panel de Supabase avisa que esas funciones son `SECURITY DEFINER` ejecutables sin sesión: es a propósito.
 - En el código, el **proxy** solo hace redirecciones rápidas; la autorización real está en `src/lib/auth/dal.ts` y en RLS.
 
 ## Estado
@@ -123,7 +126,7 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 | Sprint 1: Supabase, auth, negocios, profesionales, RLS, onboarding | ✅ |
 | Sprint 2: Configuración, servicios y horarios | ✅ |
 | Sprint 3: Agenda | ✅ |
-| Sprint 4: Reservas públicas | Pendiente |
+| Sprint 4: Reservas públicas | ✅ |
 | Sprint 5: Clientes, pagos y dashboard | Pendiente |
 | Sprint 6: PWA y pruebas | Pendiente |
 | WhatsApp por profesional | Post-MVP |
@@ -150,9 +153,19 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 - **Detalle del turno:** confirmar, finalizar y "no vino" (desde la hora de inicio), cancelar con motivo, reprogramar (calendario + horarios libres), deshacer, editar nota; WhatsApp con mensaje listo (confirmación, recordatorio, reprogramado, cancelado).
 - **Inicio:** tarjeta "Hoy" con En curso / Próximos / Atendidos, acciones rápidas y aviso de turnos **sin cerrar** (Vino / No vino).
 
+### Sprint 4 — qué incluye
+- **Página pública** (`/<slug>`, ej. `localhost:3000/ivan-dev`): encabezado del negocio (rubro, descripción, dirección, "Consultar por WhatsApp") y reserva en pasos: servicio → día (tira con "N libres", "Más días") → horario (Mañana / Tarde) → tus datos (nombre, celular obligatorio, nota) → "¡Listo, tu turno está reservado!" con **Agregar a mi calendario** (.ics con aviso 1 h antes) y **Escribir al negocio**. Recuerda nombre y celular en el navegador del cliente. Si el horario se ocupa mientras completa los datos, vuelve a elegir con horarios actualizados. Título y descripción para compartir el link.
+- **Reglas:** las reservas van al dueño (primer profesional reservable); entran **"Por confirmar"** salvo que el negocio active la confirmación automática; el cliente cancela o cambia **por WhatsApp** (sin link de autogestión). Por defecto: anticipación mínima 30 min y hasta 90 días adelante.
+- **Configuración → Reservas online:** activar/pausar, anticipación mínima, hasta cuándo se puede reservar y confirmación automática.
+- **Agenda:** marca "Online" (vista día), ícono de globo (semana) y "Reservado online" en el detalle.
+- **Inicio:** aviso "Tenés N reservas online por confirmar" con **Confirmar** y WhatsApp ("Avisarle" con el mensaje de confirmación); tarjeta "Tu página de reservas" (Activa / Pausada / Falta configurar, Copiar, Ver mi página, Compartir por WhatsApp). "Compartí tu link" se tilda la primera vez que se copia o comparte.
+
 ### Pendientes conocidos
 - Al eliminar la cuenta de un dueño, su negocio queda sin dueño: implementar "eliminar cuenta" borrando también el negocio.
 - Antes de producción: confirmación de email + SMTP propio + templates en español; activar la protección contra contraseñas filtradas (Auth → Passwords).
 - Feriados trasladables (1 de marzo, 12 de junio, 29 de setiembre): confirmar cada año la fecha que fija el gobierno.
 - Agregar personal (varios profesionales) y qué servicios hace cada uno: post-MVP; las tablas ya lo contemplan. Al hacerlo: restringir en RLS que el personal vea solo sus turnos y sumar al dueño un selector "Todos / Mis turnos / <profesional>" en la agenda.
+- Dominio real: los links copiados usan el dominio donde está abierta la app; la tarjeta muestra `turnosapp.com/…` (`PUBLIC_SITE_DOMAIN` en `src/lib/config.ts`).
+- Abuso de la página pública: el límite de 3 reservas es por celular; alguien que invente números podría llenar la agenda. Si pasa, sumar un tope por negocio y por hora, o un límite por IP.
+- Elegir profesional en la página pública: cuando haya equipo (hoy todo va al dueño).
 - Recordatorios automáticos por WhatsApp (whatsapp-web.js, un número por profesional): post-MVP. Hoy los mensajes se abren en el WhatsApp del profesional para enviarlos a mano.
