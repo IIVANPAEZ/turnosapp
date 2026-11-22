@@ -1,5 +1,6 @@
 import { requireBusiness } from "@/lib/auth/dal";
 import { ROLE_LABELS } from "@/lib/business/members";
+import { AccountMenu } from "./account-menu";
 
 /**
  * Usuario actual en el header del panel (el negocio va en el sidebar).
@@ -8,7 +9,6 @@ import { ROLE_LABELS } from "@/lib/business/members";
  */
 export async function HeaderAccount() {
   const { business, member } = await requireBusiness();
-  const initial = member.displayName.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <div className="flex min-w-0 shrink-0 items-center gap-3">
@@ -16,14 +16,12 @@ export async function HeaderAccount() {
         <p className="truncate text-[13px] font-medium leading-tight">{member.displayName}</p>
         <p className="truncate text-[11.5px] leading-tight text-muted-foreground">{ROLE_LABELS[member.role]}</p>
       </div>
-      <div
-        className="flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ring-2 ring-background outline outline-line-strong"
-        style={{ backgroundColor: member.color }}
-        title={`${member.displayName} · ${business.name}`}
-        aria-hidden="true"
-      >
-        {initial}
-      </div>
+      <AccountMenu
+        name={member.displayName}
+        roleLabel={ROLE_LABELS[member.role]}
+        businessName={business.name}
+        color={member.color}
+      />
     </div>
   );
 }
