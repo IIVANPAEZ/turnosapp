@@ -36,6 +36,8 @@ type NewAppointmentFormProps = {
   /** Día y hora precargados (ej. al tocar una celda de la agenda). */
   initialDate: string;
   initialTime?: string;
+  /** Cliente ya elegido (ej. desde la ficha del cliente). */
+  initialClient?: ClientOption;
   today: string;
   /** Turno creado (con la fecha final, por si se cambió en el formulario). */
   onDone: (id: string, message: string, date: string) => void;
@@ -44,8 +46,18 @@ type NewAppointmentFormProps = {
 
 type ClientChoice = { mode: "existing"; client: ClientOption } | { mode: "new"; name: string; phone: string };
 
-export function NewAppointmentForm({ services, initialDate, initialTime, today, onDone, onCancel }: NewAppointmentFormProps) {
-  const [client, setClient] = useState<ClientChoice | null>(null);
+export function NewAppointmentForm({
+  services,
+  initialDate,
+  initialTime,
+  initialClient,
+  today,
+  onDone,
+  onCancel,
+}: NewAppointmentFormProps) {
+  const [client, setClient] = useState<ClientChoice | null>(
+    initialClient ? { mode: "existing", client: initialClient } : null,
+  );
   const [serviceId, setServiceId] = useState<string | null>(services.length === 1 ? services[0].id : null);
   const service = services.find((s) => s.id === serviceId) ?? null;
   const [duration, setDuration] = useState<number>(service?.durationMinutes ?? 60);

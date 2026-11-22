@@ -130,6 +130,14 @@ export function AppointmentDetail({ appointment: a, businessName, timeZone, toda
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Contacto</p>
               <p className="font-mono text-sm">{a.clientPhone ?? "Sin celular"}</p>
+              {a.clientId && (
+                <Link
+                  href={`/dashboard/clientes?cliente=${a.clientId}`}
+                  className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Ver ficha del cliente <ArrowRight className="size-3" />
+                </Link>
+              )}
             </div>
             {a.clientPhone && (
               <Button variant="ghost" size="icon" aria-label={`Llamar a ${a.clientName}`} render={<a href={`tel:${a.clientPhone.replace(/[^\d+]/g, "")}`} />} nativeButton={false}>

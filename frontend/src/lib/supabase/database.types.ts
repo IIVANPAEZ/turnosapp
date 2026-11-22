@@ -546,6 +546,21 @@ export type Database = {
           status: Database["public"]["Enums"]["appointment_status"]
         }[]
       }
+      client_overview: {
+        Args: { p_business_id: string; p_member_id?: string }
+        Returns: {
+          created_at: string
+          full_name: string
+          id: string
+          last_visit: string
+          next_appointment: string
+          no_shows: number
+          notes: string
+          phone: string
+          total_paid: number
+          visits: number
+        }[]
+      }
       create_appointment: {
         Args: {
           p_client_id: string

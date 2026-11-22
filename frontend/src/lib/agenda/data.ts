@@ -28,6 +28,7 @@ export type AgendaAppointment = {
   /** Minutos desde la medianoche local (para ubicarlo en la línea de tiempo). */
   startMin: number;
   endMin: number;
+  clientId: string | null;
   clientName: string;
   clientPhone: string | null;
   serviceName: string;
@@ -83,7 +84,7 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
   let apptQuery = supabase
     .from("appointments")
     .select(
-      "id, member_id, starts_at, ends_at, status, service_name, price, price_type, notes, cancel_reason, rescheduled_to, source, client:clients (full_name, phone), member:business_members (color, display_name)",
+      "id, member_id, starts_at, ends_at, status, service_name, price, price_type, notes, cancel_reason, rescheduled_to, source, client:clients (id, full_name, phone), member:business_members (color, display_name)",
     )
     .eq("business_id", current.business.id)
     .gte("starts_at", rangeStart.toISOString())
@@ -144,6 +145,7 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
       end: minutesToHHMM(Math.min(endMin, 24 * 60 - 1)),
       startMin: s.minutes,
       endMin,
+      clientId: a.client?.id ?? null,
       clientName: a.client?.full_name ?? "Cliente",
       clientPhone: a.client?.phone ?? null,
       serviceName: a.service_name,
