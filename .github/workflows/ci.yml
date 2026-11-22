@@ -1,0 +1,52 @@
+# Revisión automática en cada push y pull request (Sprint 6).
+# Corre lint, TypeScript, las pruebas rápidas (Vitest) y el build.
+# Las pruebas de punta a punta (Playwright) se corren en la compu: `npm run test:e2e`.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # El build no se conecta a Supabase: alcanza con valores de relleno
+      # (las claves reales nunca se suben al repositorio).
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Tipos de las rutas (Next)
+        run: npx next typegen
+
+      - name: Lint
+        run: npm run lint
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Pruebas rápidas (Vitest)
+        run: npm test
+
+      - name: Build
+        run: npm run build

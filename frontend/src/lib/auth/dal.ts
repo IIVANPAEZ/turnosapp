@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -41,6 +42,9 @@ export type CurrentBusiness = {
 
 /** Usuario con sesión válida, o null. Se resuelve una sola vez por request. */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  // Datos del usuario: siempre de la visita actual (nunca en una precarga ni en caché).
+  // Además, verificar la sesión usa la hora actual (vencimiento del token).
+  await connection();
   const supabase = await createClient();
   // getClaims() verifica la firma del JWT (no confía ciegamente en la cookie).
   const { data, error } = await supabase.auth.getClaims();

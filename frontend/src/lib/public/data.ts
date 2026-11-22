@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { connection } from "next/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import type { BusinessCategory } from "@/lib/business/schemas";
 import type { PriceType } from "@/lib/services/schemas";
@@ -29,12 +30,12 @@ export type PublicService = {
 
 /** Datos públicos del negocio (o null si el link no existe). */
 export const getPublicBusiness = cache(async (slug: string): Promise<PublicBusiness | null> => {
+  // Siempre datos frescos de la visita (si el negocio pausa las reservas, se ve al instante).
+  await connection();
   const supabase = createPublicClient();
   const { data, error } = await supabase.rpc("public_business", { p_slug: slug });
-  if (error) {
-    console.error("[público] public_business:", error.code, error.message);
-    return null;
-  }
+  // Un error de conexión NO es "el link no existe": se muestra la pantalla de error (con Reintentar).
+  if (error) throw new Error(`public_business: ${error.code} ${error.message}`);
   const b = data?.[0];
   if (!b) return null;
   return {
@@ -53,12 +54,11 @@ export const getPublicBusiness = cache(async (slug: string): Promise<PublicBusin
 
 /** Servicios activos del negocio. */
 export const getPublicServices = cache(async (slug: string): Promise<PublicService[]> => {
+  await connection();
   const supabase = createPublicClient();
   const { data, error } = await supabase.rpc("public_services", { p_slug: slug });
-  if (error) {
-    console.error("[público] public_services:", error.code, error.message);
-    return [];
-  }
+  // Si falla, mejor "Algo salió mal · Reintentar" que "Todavía no hay servicios".
+  if (error) throw new Error(`public_services: ${error.code} ${error.message}`);
   return (data ?? []).map((s) => ({
     id: s.id,
     name: s.name,
