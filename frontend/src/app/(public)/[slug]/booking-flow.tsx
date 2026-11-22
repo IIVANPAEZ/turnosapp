@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   AlertCircle,
   ArrowLeft,
   CalendarPlus,
   Check,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Loader2,
@@ -17,7 +18,7 @@ import { formatDuration, formatPYG } from "@/lib/format";
 import type { PublicService } from "@/lib/public/data";
 import { bookAppointment, fetchPublicAvailability, type BookingResult } from "@/lib/public/actions";
 import { buildIcs, downloadIcs } from "@/lib/public/ics";
-import { addDays, MONTHS_LONG, MONTHS_SHORT, WEEKDAYS_LONG, WEEKDAYS_SHORT, weekdayOf } from "@/lib/time/zone";
+import { addDays, MONTHS_LONG, MONTHS_SHORT, startOfWeek, WEEKDAYS_LONG, WEEKDAYS_SHORT, weekdayOf } from "@/lib/time/zone";
 import { relativeDay, whatsAppLink } from "@/lib/whatsapp";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,8 +43,6 @@ type BookingFlowProps = {
 type Stage = "pick" | "details" | "done";
 type Booked = Extract<BookingResult, { ok: true }> & { name: string };
 
-/** Días que se cargan por tanda. */
-const BATCH = 14;
 /** Nombre y celular se recuerdan en este navegador para la próxima reserva. */
 const STORAGE_KEY = "turnosapp:cliente";
 
@@ -54,18 +53,41 @@ export function BookingFlow({ business, services, today, maxDays }: BookingFlowP
   const [stage, setStage] = useState<Stage>("pick");
   const [serviceId, setServiceId] = useState<string | null>(services.length === 1 ? services[0].id : null);
   const service = services.find((s) => s.id === serviceId) ?? null;
-  // Cantidad de días mostrados (crece con "Más días").
-  const [shownDays, setShownDays] = useState(BATCH);
   const [slotsByDay, setSlotsByDay] = useState<Record<string, string[]>>({});
-  const [loadedUntil, setLoadedUntil] = useState(0);
+  // Semanas ya cargadas (0 = esta semana). Semana elegida con las flechas (null = automática).
+  const [loadedWeeks, setLoadedWeeks] = useState<Record<number, true>>({});
+  const [chosenWeek, setChosenWeek] = useState<number | null>(null);
   const [loading, startLoading] = useTransition();
+  // Semanas pidiéndose ahora, y "generación" de la búsqueda: si cambia (otro servicio,
+  // reinicio), las respuestas viejas se ignoran.
+  const inFlight = useRef(new Set<number>());
+  const generation = useRef(0);
   const [day, setDay] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [slotError, setSlotError] = useState<string | null>(null);
   const [booked, setBooked] = useState<Booked | null>(null);
 
-  const lastDay = Math.min(shownDays, maxDays + 1);
-  const days = useMemo(() => Array.from({ length: lastDay }, (_, i) => addDays(today, i)), [today, lastDay]);
+  // Semanas de lunes a domingo, desde la de hoy hasta el último día reservable.
+  const firstMonday = startOfWeek(today);
+  const lastAllowed = addDays(today, maxDays);
+  const maxWeek = Math.floor((Date.parse(lastAllowed) - Date.parse(firstMonday)) / (7 * 86_400_000));
+  const weekDays = (w: number) => Array.from({ length: 7 }, (_, i) => addDays(firstMonday, w * 7 + i));
+  const weekHasSlots = (w: number) => weekDays(w).some((d) => (slotsByDay[d]?.length ?? 0) > 0);
+
+  // Semana automática: la primera con lugar (mientras se van cargando, la última cargada).
+  let autoWeek = 0;
+  let searching = false;
+  for (let w = 0; w <= maxWeek; w++) {
+    autoWeek = w;
+    if (!loadedWeeks[w]) {
+      searching = true;
+      autoWeek = Math.max(0, w - 1);
+      break;
+    }
+    if (weekHasSlots(w)) break;
+  }
+  const week = chosenWeek ?? autoWeek;
+  const days = weekDays(week);
 
   const goTo = (next: Stage, anchor?: string) => {
     setStage(next);
@@ -81,33 +103,49 @@ export function BookingFlow({ business, services, today, maxDays }: BookingFlowP
   const pickService = (id: string) => {
     if (id === serviceId) return;
     setServiceId(id);
-    setSlotsByDay({});
-    setLoadedUntil(0);
-    setShownDays(BATCH);
+    resetSlots();
+    setChosenWeek(null);
     setDay(null);
     setTime(null);
     setSlotError(null);
   };
 
-  // Carga los horarios de los días que faltan.
+  // Vuelve a pedir los horarios (por ejemplo, si se ocupó uno mientras completaba los datos).
+  function resetSlots() {
+    setSlotsByDay({});
+    setLoadedWeeks({});
+    inFlight.current.clear();
+    generation.current++;
+  }
+
+  // Carga la semana que se ve y la siguiente (para que pasar sea instantáneo); si todavía
+  // se busca la primera semana con lugar, también la próxima sin cargar.
   useEffect(() => {
-    if (!serviceId || loadedUntil >= lastDay) return;
-    const from = addDays(today, loadedUntil);
-    const count = lastDay - loadedUntil;
-    let alive = true;
-    startLoading(async () => {
-      const result = await fetchPublicAvailability(business.slug, serviceId, from, count);
-      if (!alive) return;
-      const next: Record<string, string[]> = {};
-      for (let i = 0; i < count; i++) next[addDays(from, i)] = [];
-      for (const s of result) (next[s.day] ??= []).push(s.slot);
-      setSlotsByDay((prev) => ({ ...prev, ...next }));
-      setLoadedUntil(lastDay);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [serviceId, business.slug, today, loadedUntil, lastDay]);
+    if (!serviceId) return;
+    const wanted = [week, week + 1];
+    if (chosenWeek === null && searching) wanted.push(autoWeek + 1);
+    const missing = wanted.filter((w) => w >= 0 && w <= maxWeek && !loadedWeeks[w] && !inFlight.current.has(w));
+    if (!missing.length) return;
+    const gen = generation.current;
+    for (const w of missing) {
+      inFlight.current.add(w);
+      const from = weekDays(w)[0] < today ? today : weekDays(w)[0];
+      const to = weekDays(w)[6] > lastAllowed ? lastAllowed : weekDays(w)[6];
+      const count = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1;
+      startLoading(async () => {
+        const result = count > 0 ? await fetchPublicAvailability(business.slug, serviceId, from, count) : [];
+        if (gen !== generation.current) return; // respuesta de una búsqueda vieja
+        inFlight.current.delete(w);
+        const next: Record<string, string[]> = {};
+        for (let i = 0; i < count; i++) next[addDays(from, i)] = [];
+        for (const sl of result) (next[sl.day] ??= []).push(sl.slot);
+        setSlotsByDay((prev) => ({ ...prev, ...next }));
+        setLoadedWeeks((prev) => ({ ...prev, [w]: true }));
+      });
+    }
+    // weekDays depende de firstMonday (derivado de today).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceId, business.slug, today, lastAllowed, week, chosenWeek, searching, autoWeek, maxWeek, loadedWeeks]);
 
   // Elige solo el primer día con lugar (si todavía no se eligió ninguno).
   const firstAvailable = days.find((d) => (slotsByDay[d]?.length ?? 0) > 0) ?? null;
@@ -115,23 +153,22 @@ export function BookingFlow({ business, services, today, maxDays }: BookingFlowP
   const daySlots = selectedDay ? (slotsByDay[selectedDay] ?? []) : [];
   const morning = daySlots.filter((s) => s < "13:00");
   const afternoon = daySlots.filter((s) => s >= "13:00");
-  const noSlotsLoaded = loadedUntil > 0 && !firstAvailable;
+  const weekLoaded = !!loadedWeeks[week];
+  const noSlotsThisWeek = weekLoaded && !firstAvailable && !(chosenWeek === null && searching);
   const ready = !!service && !!selectedDay && !!time;
 
   // El horario se ocupó mientras el cliente completaba sus datos: vuelve a elegir con horarios frescos.
   const onSlotLost = (message: string) => {
     setSlotError(message);
     setTime(null);
-    setSlotsByDay({});
-    setLoadedUntil(0);
+    resetSlots();
     goTo("pick", "paso-horario");
   };
 
   const restart = () => {
     setBooked(null);
     setTime(null);
-    setSlotsByDay({});
-    setLoadedUntil(0);
+    resetSlots();
     goTo("pick");
   };
 
@@ -219,57 +256,41 @@ export function BookingFlow({ business, services, today, maxDays }: BookingFlowP
           <p className="text-sm text-muted-foreground">Primero elegí un servicio.</p>
         ) : (
           <>
-            <div className="-mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:scroll-px-0 sm:px-0">
-              {days.map((d) => {
-                const count = slotsByDay[d]?.length;
-                const known = count !== undefined;
-                const disabled = known && count === 0;
-                const selected = d === selectedDay;
-                return (
+            <WeekPicker
+              week={week}
+              maxWeek={maxWeek}
+              days={days}
+              today={today}
+              lastAllowed={lastAllowed}
+              slotsByDay={slotsByDay}
+              selectedDay={selectedDay}
+              loading={loading && !weekLoaded}
+              onWeek={(w) => {
+                setChosenWeek(w);
+                setDay(null);
+                setTime(null);
+              }}
+              onDay={(d) => {
+                setDay(d);
+                setTime(null);
+              }}
+            />
+            {noSlotsThisWeek && (
+              <p className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">
+                {week < maxWeek ? "No hay horarios libres esta semana." : `No quedan horarios libres en los próximos ${maxDays} días.`}
+                {week < maxWeek && (
                   <button
-                    key={d}
                     type="button"
-                    disabled={disabled || !known}
                     onClick={() => {
-                      setDay(d);
+                      setChosenWeek(week + 1);
+                      setDay(null);
                       setTime(null);
                     }}
-                    aria-pressed={selected}
-                    className={cn(
-                      "flex w-[4.5rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl border px-2 py-2.5 transition-colors",
-                      selected
-                        ? "border-primary/70 bg-primary-soft"
-                        : disabled
-                          ? "bg-inset opacity-50"
-                          : "bg-card hover:border-line-strong",
-                    )}
+                    className="flex items-center gap-1 font-medium text-primary hover:underline"
                   >
-                    <span className={cn("text-xs", selected ? "text-primary" : "text-muted-foreground")}>
-                      {d === today ? "Hoy" : d === addDays(today, 1) ? "Mañana" : WEEKDAYS_SHORT[weekdayOf(d)]}
-                    </span>
-                    <span className="text-xl leading-tight font-semibold tabular">{Number(d.slice(8, 10))}</span>
-                    <span className="text-[11px] text-muted-foreground">{MONTHS_SHORT[Number(d.slice(5, 7)) - 1]}</span>
-                    <span className={cn("mt-0.5 text-[10.5px]", disabled ? "text-faint" : "text-success")}>
-                      {!known ? "…" : disabled ? "Sin lugar" : `${count} libres`}
-                    </span>
+                    Ver la siguiente <ChevronRight className="size-4" />
                   </button>
-                );
-              })}
-              {lastDay <= maxDays && (
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => setShownDays((n) => n + BATCH)}
-                  className="flex w-[4.5rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {loading ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
-                  Más días
-                </button>
-              )}
-            </div>
-            {noSlotsLoaded && !loading && (
-              <p className="rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground">
-                No quedan horarios libres en estos días. Probá con “Más días”.
+                )}
               </p>
             )}
           </>
@@ -672,6 +693,105 @@ function BottomBar({ title, subtitle, children }: { title: string; subtitle: Rea
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+/** Una semana (lunes a domingo) con flechas para pasar a la siguiente. */
+function WeekPicker({
+  week,
+  maxWeek,
+  days,
+  today,
+  lastAllowed,
+  slotsByDay,
+  selectedDay,
+  loading,
+  onWeek,
+  onDay,
+}: {
+  week: number;
+  maxWeek: number;
+  days: string[];
+  today: string;
+  lastAllowed: string;
+  slotsByDay: Record<string, string[]>;
+  selectedDay: string | null;
+  loading: boolean;
+  onWeek: (w: number) => void;
+  onDay: (d: string) => void;
+}) {
+  const first = days[0];
+  const last = days[6];
+  const month = (d: string) => MONTHS_SHORT[Number(d.slice(5, 7)) - 1];
+  const range =
+    first.slice(5, 7) === last.slice(5, 7)
+      ? `${Number(first.slice(8, 10))} – ${Number(last.slice(8, 10))} ${month(last)}`
+      : `${Number(first.slice(8, 10))} ${month(first)} – ${Number(last.slice(8, 10))} ${month(last)}`;
+  const title = week === 0 ? "Esta semana" : week === 1 ? "La semana que viene" : `Semana del ${Number(first.slice(8, 10))} ${month(first)}`;
+  const arrow =
+    "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground transition-colors hover:border-line-strong hover:text-foreground disabled:pointer-events-none disabled:opacity-30";
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <button type="button" className={arrow} disabled={week <= 0} onClick={() => onWeek(week - 1)} aria-label="Semana anterior">
+          <ChevronLeft className="size-5" />
+        </button>
+        <div className="min-w-0 flex-1 text-center" aria-live="polite">
+          <p className="text-sm font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground">{range}</p>
+        </div>
+        <button type="button" className={arrow} disabled={week >= maxWeek} onClick={() => onWeek(week + 1)} aria-label="Semana siguiente">
+          <ChevronRight className="size-5" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+        {days.map((d) => {
+          const outside = d < today || d > lastAllowed;
+          const count = slotsByDay[d]?.length;
+          const known = count !== undefined;
+          const disabled = outside || !known || count === 0;
+          const selected = d === selectedDay;
+          return (
+            <button
+              key={d}
+              type="button"
+              disabled={disabled}
+              onClick={() => onDay(d)}
+              aria-pressed={selected}
+              aria-label={`${WEEKDAYS_LONG[weekdayOf(d)]} ${Number(d.slice(8, 10))}: ${
+                outside ? "no disponible" : !known ? "cargando" : count ? `${count} horarios libres` : "sin lugar"
+              }`}
+              className={cn(
+                "flex min-w-0 flex-col items-center gap-0.5 rounded-xl border px-0.5 py-2.5 transition-colors",
+                selected
+                  ? "border-primary/70 bg-primary-soft"
+                  : disabled
+                    ? "border-transparent bg-inset/60"
+                    : "bg-card hover:border-line-strong",
+              )}
+            >
+              <span className={cn("text-[11px]", selected ? "text-primary" : "text-muted-foreground")}>
+                {d === today ? "Hoy" : WEEKDAYS_SHORT[weekdayOf(d)]}
+              </span>
+              <span className={cn("text-lg leading-tight font-semibold tabular", outside && "text-faint")}>
+                {Number(d.slice(8, 10))}
+              </span>
+              <span
+                className={cn(
+                  "font-mono text-[11px] tabular",
+                  outside || (known && !count) ? "text-faint" : "text-success",
+                )}
+                aria-hidden="true"
+              >
+                {outside ? "" : !known ? (loading ? "…" : "") : count ? count : "—"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-center text-[11px] text-faint">El número es la cantidad de horarios libres.</p>
     </div>
   );
 }
