@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
 import { BrandHero } from "@/components/brand-hero";
+
+// App instalable desde el login (ver app/app.webmanifest).
+export const metadata: Metadata = { manifest: "/app.webmanifest" };
 
 /**
  * Layout de las pantallas de acceso: panel de marca + formulario.

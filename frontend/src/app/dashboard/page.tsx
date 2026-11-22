@@ -19,6 +19,7 @@ import { todayYMD } from "@/lib/time/zone";
 import { BookingLinkCard } from "./booking-link-card";
 import { HomeToday } from "./home-today";
 import { PendingOnline } from "./pending-online";
+import { InstallApp } from "@/components/pwa/install-app";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -121,6 +122,8 @@ async function Home() {
           {greeting(business.timezone || DEFAULT_TIMEZONE)}, {firstName}
         </h2>
       </section>
+
+      <InstallApp />
 
       {/* Reservas que hicieron los clientes y esperan confirmación. */}
       <PendingOnline

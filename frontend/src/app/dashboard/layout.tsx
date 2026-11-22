@@ -1,7 +1,11 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { HeaderAccount, HeaderAccountSkeleton } from "@/components/layout/header-account";
+
+// App instalable: el manifiesto se enlaza solo en el panel y en el acceso (no en la página pública).
+export const metadata: Metadata = { manifest: "/app.webmanifest" };
 
 export default function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   return (

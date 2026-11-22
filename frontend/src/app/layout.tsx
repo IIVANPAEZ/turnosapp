@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import { APP_NAME } from "@/lib/config";
+import { OfflineBanner } from "@/components/pwa/offline-banner";
 import "./globals.css";
 
 // Interfaz y títulos: geométrica, con carácter pero muy legible en el celular.
@@ -19,6 +20,8 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
   description: "Gestión de turnos para cualquier negocio que trabaje con citas.",
+  // iPhone: "Agregar a inicio" la abre a pantalla completa (ícono: app/apple-icon.png).
+  appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: "black" },
 };
 
 export const viewport: Viewport = {
@@ -29,7 +32,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`dark ${grotesk.variable} ${jetbrains.variable} h-full antialiased`}>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <OfflineBanner />
+        {children}
+      </body>
     </html>
   );
 }
