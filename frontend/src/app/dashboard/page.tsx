@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { cn } from "@/lib/utils";
@@ -13,6 +13,8 @@ import { getTodaySchedule, getWeekHours, todayLabel } from "@/lib/schedule/data"
 import { weeklyTotal } from "@/lib/schedule/week";
 import { getServices } from "@/lib/services/data";
 import { getAgenda, getPendingOnline, hasAnyAppointment } from "@/lib/agenda/data";
+import { getIncome } from "@/lib/income/data";
+import { formatPYG } from "@/lib/format";
 import { todayYMD } from "@/lib/time/zone";
 import { BookingLinkCard } from "./booking-link-card";
 import { HomeToday } from "./home-today";
@@ -54,6 +56,9 @@ async function Home() {
     getBusinessSettings(),
     getPendingOnline(),
   ]);
+  // Tira "Hoy cobraste…": solo dueño/admin (ellos ven los ingresos).
+  const seesIncome = member.role === "owner" || member.role === "admin";
+  const todayIncome = seesIncome ? await getIncome(todayDate, todayDate) : null;
   const firstName = member.displayName.split(" ")[0];
   const publicUrl = `${PUBLIC_SITE_DOMAIN}/${business.slug}`;
 
@@ -124,6 +129,27 @@ async function Home() {
         businessName={business.name}
         today={todayDate}
       />
+
+      {todayIncome && (todayIncome.total > 0 || todayIncome.unpaid.length > 0) && (
+        <Link
+          href="/dashboard/ingresos?periodo=hoy"
+          className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/[0.07] transition-colors hover:bg-raised"
+        >
+          <span className="flex items-center gap-2">
+            <Wallet className="size-4 text-primary" />
+            Hoy cobraste <span className="font-mono font-medium tabular">{formatPYG(todayIncome.total)}</span>
+            <span className="text-muted-foreground">
+              · {todayIncome.paymentsCount} cobro{todayIncome.paymentsCount === 1 ? "" : "s"}
+            </span>
+          </span>
+          {todayIncome.unpaid.length > 0 && (
+            <span className="text-warning">
+              Falta cobrar <span className="font-mono tabular">{formatPYG(todayIncome.unpaidTotal)}</span>
+            </span>
+          )}
+          <ArrowRight className="ml-auto size-4 text-muted-foreground" />
+        </Link>
+      )}
 
       {/* Turnos de hoy: en curso, próximos y atendidos (con acciones rápidas). */}
       <HomeToday

@@ -23,3 +23,13 @@ export function formatDuration(minutes: number): string {
   if (m === 0) return `${h} h`;
   return `${h} h ${m} min`;
 }
+
+/** 350000 → "₲ 350 mil" · 1250000 → "₲ 1,3 M" (para ejes de gráficos). */
+export function formatPYGCompact(value: number): string {
+  if (value >= 1_000_000) {
+    const m = Math.round(value / 100_000) / 10;
+    return `₲ ${String(m).replace(".", ",")} M`;
+  }
+  if (value >= 1_000) return `₲ ${Math.round(value / 1_000)} mil`;
+  return formatPYG(value);
+}
