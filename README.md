@@ -24,7 +24,7 @@ SaaS de gestión de turnos para cualquier negocio o profesional que trabaje con 
 │       │   ├── (public)/[slug]/ Página pública de reservas (turnosapp.com/<negocio>)
 │       │   ├── onboarding/   Alta del negocio (primer ingreso)
 │       │   └── dashboard/    Panel privado
-│       ├── components/       UI (shadcn en ui/), la tira del día, piezas por módulo
+│       ├── components/       UI (shadcn en ui/), la tira del día, piezas por módulo (appointments/: "¿Cómo te pagó?")
 │       ├── lib/
 │       │   ├── supabase/     Clientes (navegador/servidor/público sin sesión), proxy de sesión, tipos generados
 │       │   ├── public/       Página pública: datos del negocio, horarios libres, reservar, archivo .ics
@@ -34,6 +34,8 @@ SaaS de gestión de turnos para cualquier negocio o profesional que trabaje con 
 │       │   ├── schedule/     Horarios semanales, bloqueos, feriados de Paraguay
 │       │   ├── agenda/       Agenda: datos por día/semana, horarios libres, acciones de turnos
 │       │   ├── appointments/ Estados del turno (textos y colores)
+│       │   ├── clients/      Clientes: resumen, ficha, edición, formas de pago
+│       │   ├── income/       Ingresos: períodos y totales
 │       │   ├── time/zone.ts  Fechas y horas en la zona del negocio (sin dependencias)
 │       │   ├── whatsapp.ts   Links de WhatsApp con mensaje listo
 │       │   └── format.ts     Guaraníes (₲ 150.000) y duraciones (1 h 30 min)
@@ -116,6 +118,8 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 - Reglas de negocio en la base: nombres de servicio únicos por negocio, duraciones en múltiplos de 5, franjas horarias sin superposición (exclusión con `btree_gist`), fechas de bloqueos convertidas con la zona horaria del negocio.
 - Las funciones auxiliares de seguridad viven en el esquema `private` (no expuesto en la API).
 - **Página pública (sin sesión):** quien no tiene sesión no puede leer ni escribir ninguna tabla. Solo puede usar 4 funciones de la base: `public_business`, `public_services`, `public_availability` (devuelve solo `{día, horario}`, nunca datos de otros clientes) y `book_appointment` (valida todo de nuevo, evita reservas simultáneas con la exclusión de turnos, campo trampa contra bots, máximo 3 reservas por venir por celular). El panel de Supabase avisa que esas funciones son `SECURITY DEFINER` ejecutables sin sesión: es a propósito.
+- **Cobros:** la tabla `payments` no tiene permisos de escritura directos: se cobra con `finish_appointment` / `record_payment` y se anula con `void_payment`, que revisan que sea el dueño/admin o el profesional del turno. Un profesional lee solo los cobros de sus turnos; la pantalla de Ingresos es solo para dueño/admin. Un cobro nunca se borra (se anula con motivo).
+- **Tablas nuevas:** Supabase da por defecto todos los permisos a `anon` y `authenticated` sobre las tablas nuevas de `public`. Toda migración que cree una tabla tiene que hacer `revoke all … from anon` y dar a `authenticated` solo lo necesario.
 - En el código, el **proxy** solo hace redirecciones rápidas; la autorización real está en `src/lib/auth/dal.ts` y en RLS.
 
 ## Estado
@@ -127,7 +131,7 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 | Sprint 2: Configuración, servicios y horarios | ✅ |
 | Sprint 3: Agenda | ✅ |
 | Sprint 4: Reservas públicas | ✅ |
-| Sprint 5: Clientes, pagos y dashboard | Pendiente |
+| Sprint 5: Clientes, pagos y dashboard | ✅ |
 | Sprint 6: PWA y pruebas | Pendiente |
 | WhatsApp por profesional | Post-MVP |
 
@@ -160,11 +164,19 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 - **Agenda:** marca "Online" (vista día), ícono de globo (semana) y "Reservado online" en el detalle.
 - **Inicio:** aviso "Tenés N reservas online por confirmar" con **Confirmar** y WhatsApp ("Avisarle" con el mensaje de confirmación); tarjeta "Tu página de reservas" (Activa / Pausada / Falta configurar, Copiar, Ver mi página, Compartir por WhatsApp). "Compartí tu link" se tilda la primera vez que se copia o comparte.
 
+### Sprint 5 — qué incluye
+- **Clientes** (`/dashboard/clientes`): lista con buscador (nombre sin tildes o parte del celular), filtros Nuevos / Frecuentes / No volvieron, orden Recientes / A–Z / Más visitas, última visita, próximo turno, visitas y cobrado. **Ficha:** visitas, "no vino", cobrado, celular con Llamar y WhatsApp, **nota** (sin datos de salud), próximos turnos e historial con el cobro; editar datos (celular repetido → aviso); "Nuevo turno para…" con el cliente ya elegido. Desde el detalle de un turno: "Ver ficha del cliente".
+- **Iniciar cita:** el turno pasa a "En curso" de verdad (se guarda la hora real). Desde 1 h antes de la hora; opcional.
+- **Finalizar cita = cobrar:** "¿Cómo te pagó?" con el monto del servicio (editable) y **Efectivo** / **Transferencia o tarjeta** — un toque finaliza y registra el cobro. "Finalizar sin cobrar" para casos especiales; después, "Registrar cobro" o "Anular cobro" desde el detalle. Pagos manuales: el negocio cobra por su cuenta; **un cobro por turno**, sin parciales ni ingresos sueltos (por ahora).
+- **Ingresos** (`/dashboard/ingresos`, solo dueño/admin): período (hoy, semana, mes, mes anterior o fechas), cobrado vs. período anterior, turnos atendidos, ticket promedio, falta cobrar (con "Cobrar" ahí mismo), gráfico por día, desgloses por forma de pago, servicio y profesional, % no vino, clientes nuevos, % reservas online y lista de cobros. **Inicio:** tira "Hoy cobraste ₲ … · Falta cobrar ₲ …".
+
 ### Pendientes conocidos
 - Al eliminar la cuenta de un dueño, su negocio queda sin dueño: implementar "eliminar cuenta" borrando también el negocio.
 - Antes de producción: confirmación de email + SMTP propio + templates en español; activar la protección contra contraseñas filtradas (Auth → Passwords).
 - Feriados trasladables (1 de marzo, 12 de junio, 29 de setiembre): confirmar cada año la fecha que fija el gobierno.
 - Agregar personal (varios profesionales) y qué servicios hace cada uno: post-MVP; las tablas ya lo contemplan. Al hacerlo: restringir en RLS que el personal vea solo sus turnos y sumar al dueño un selector "Todos / Mis turnos / <profesional>" en la agenda.
+- Ingresos sueltos (venta de productos) y cobros parciales: decididos para más adelante.
+- "Deshacer inicio" vuelve el turno a Confirmado pero conserva la primera hora de inicio guardada.
 - Dominio real: los links copiados usan el dominio donde está abierta la app; la tarjeta muestra `turnosapp.com/…` (`PUBLIC_SITE_DOMAIN` en `src/lib/config.ts`).
 - Abuso de la página pública: el límite de 3 reservas es por celular; alguien que invente números podría llenar la agenda. Si pasa, sumar un tope por negocio y por hora, o un límite por IP.
 - Elegir profesional en la página pública: cuando haya equipo (hoy todo va al dueño).

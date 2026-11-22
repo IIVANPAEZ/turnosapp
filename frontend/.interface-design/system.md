@@ -102,6 +102,15 @@ Escala usada: título de página `text-2xl`–`text-3xl` · título de tarjeta `
 - **Aviso en Inicio:** tarjeta con borde `border-primary/25`, filas `divide-y` con fecha mono, cliente, servicio y botones `h-8` (WhatsApp verde cuadrado + Confirmar ámbar); al confirmar la fila queda "✓ Confirmado" + "Avisarle".
 - **Tarjeta "Tu página de reservas":** chip de estado (Activa verde / Pausada ámbar / Falta configurar neutro), link mono en `bg-inset` con "Copiar", y dos botones: "Ver mi página" (neutro) y "Compartir" (verde).
 
+## Clientes, cobros e ingresos (Sprint 5)
+
+- **Lista de clientes:** una tarjeta con filas `divide-y`; en escritorio columnas Cliente / Última visita / Próximo turno / Visitas / Cobrado (montos mono a la derecha); en el celular, una línea de resumen `text-xs text-faint`. Inicial en círculo `bg-raised`. Etiquetas: Nuevo `bg-primary-soft text-primary`, Frecuente `bg-success-soft text-success`, No volvió `bg-warning-soft text-warning`. Filtros como pastillas redondas con contador mono; orden como control segmentado `bg-inset` (elegido `bg-raised`).
+- **Ficha del cliente:** `Sheet`; arriba tres números (`grid-cols-[1fr_1fr_1.5fr]`, el cobrado más ancho), tarjeta `bg-inset` con celular, Llamar, Editar (lápiz), WhatsApp verde y nota; "Próximos turnos" como tarjetas, "Historial" como lista con borde. Pie fijo: "Nuevo turno para <nombre>".
+- **"¿Cómo te pagó?" (`FinishPanel`):** recuadro `border-primary/30 bg-card`: título + monto editable (₲ mono, en `bg-inset`) y dos botones grandes ámbar `min-h-16` con ícono (Efectivo / Transferencia o tarjeta); abajo "Volver" y "Finalizar sin cobrar". Se abre dentro del detalle o debajo de la fila (no otro diálogo). Es el único paso para cobrar.
+- **En curso:** chip `bg-primary text-primary-foreground` "En curso · desde las 17:07"; en la tarjeta Hoy, barra de progreso y aviso ámbar si se pasó de su horario. "Iniciar cita" con ícono `Play`.
+- **Cobro en el turno:** línea verde "Cobrado ₲ … · Efectivo" + "Anular cobro" (confirmación en línea); o ámbar "Sin cobrar" + "Registrar cobro".
+- **Ingresos:** número principal grande (mono `text-3xl`, resplandor ámbar suave) con la comparación (flecha verde/ámbar + %); tarjetas KPI (en el celular, de a dos); gráfico de una sola serie en ámbar: columnas `max-w-6` con punta redondeada de 4px, 3 líneas guía `foreground/7%`, eje con montos compactos ("₲ 100 mil"), tooltip al pasar/tocar y tabla oculta para lectores de pantalla. Desgloses como barras horizontales finas (`h-1.5 bg-primary` sobre `bg-inset`) con nombre, cantidad, monto y %.
+
 ## Patrones de componentes
 
 - **Pantallas públicas** (landing, login, registro, recuperar): `BrandHero` (resplandor `.glow-ambar`, titular, tira del día de ejemplo) + formulario directo sobre el fondo con `AuthCard` (sin tarjeta). Celular: marca arriba; escritorio: lado a lado.
