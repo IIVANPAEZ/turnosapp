@@ -168,6 +168,7 @@ export type Database = {
           address: string | null
           booking_auto_confirm: boolean
           booking_enabled: boolean
+          booking_link_shared_at: string | null
           booking_max_days: number
           booking_min_notice_minutes: number
           category: Database["public"]["Enums"]["business_category"]
@@ -187,6 +188,7 @@ export type Database = {
           address?: string | null
           booking_auto_confirm?: boolean
           booking_enabled?: boolean
+          booking_link_shared_at?: string | null
           booking_max_days?: number
           booking_min_notice_minutes?: number
           category?: Database["public"]["Enums"]["business_category"]
@@ -206,6 +208,7 @@ export type Database = {
           address?: string | null
           booking_auto_confirm?: boolean
           booking_enabled?: boolean
+          booking_link_shared_at?: string | null
           booking_max_days?: number
           booking_min_notice_minutes?: number
           category?: Database["public"]["Enums"]["business_category"]
@@ -486,6 +489,7 @@ export type Database = {
         Returns: string
       }
       is_slug_available: { Args: { p_slug: string }; Returns: boolean }
+      mark_booking_link_shared: { Args: never; Returns: undefined }
       public_availability: {
         Args: {
           p_days?: number

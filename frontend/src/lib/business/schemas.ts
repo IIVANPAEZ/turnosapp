@@ -57,6 +57,28 @@ export const onboardingSchema = z.object({
   city: optionalText(80),
 });
 
+/** Reservas online: anticipación mínima (en minutos) que se puede elegir. */
+export const MIN_NOTICE_OPTIONS = [
+  { value: 0, label: "Sin mínimo" },
+  { value: 30, label: "30 min" },
+  { value: 60, label: "1 h" },
+  { value: 120, label: "2 h" },
+  { value: 240, label: "4 h" },
+  { value: 720, label: "12 h" },
+  { value: 1440, label: "1 día" },
+  { value: 2880, label: "2 días" },
+] as const;
+
+/** Reservas online: hasta cuántos días adelante se puede reservar. */
+export const MAX_DAYS_OPTIONS = [
+  { value: 7, label: "1 semana" },
+  { value: 14, label: "2 semanas" },
+  { value: 30, label: "30 días" },
+  { value: 60, label: "60 días" },
+  { value: 90, label: "90 días" },
+  { value: 180, label: "6 meses" },
+] as const;
+
 export const businessSettingsSchema = z.object({
   name: nameField,
   category: categoryField,
@@ -65,6 +87,11 @@ export const businessSettingsSchema = z.object({
   whatsapp: whatsappField,
   address: optionalText(160),
   city: optionalText(80),
+  // Mismos límites que los CHECK de la base.
+  bookingEnabled: z.boolean(),
+  bookingMinNotice: z.number().int().min(0).max(10080),
+  bookingMaxDays: z.number().int().min(1).max(365),
+  bookingAutoConfirm: z.boolean(),
 });
 
 export type OnboardingInput = z.input<typeof onboardingSchema>;

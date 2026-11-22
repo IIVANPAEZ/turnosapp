@@ -118,6 +118,12 @@ export type BusinessSettings = {
   whatsapp: string | null;
   address: string | null;
   city: string | null;
+  bookingEnabled: boolean;
+  bookingMinNotice: number;
+  bookingMaxDays: number;
+  bookingAutoConfirm: boolean;
+  /** Primera vez que alguien del negocio copió o compartió el link (Primeros pasos). */
+  bookingLinkSharedAt: string | null;
 };
 
 /** Datos editables del negocio actual (pantalla de Configuración). */
@@ -128,12 +134,28 @@ export const getBusinessSettings = cache(async (): Promise<BusinessSettings | nu
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("businesses")
-    .select("id, name, slug, category, description, whatsapp, address, city")
+    .select(
+      "id, name, slug, category, description, whatsapp, address, city, booking_enabled, booking_min_notice_minutes, booking_max_days, booking_auto_confirm, booking_link_shared_at",
+    )
     .eq("id", current.business.id)
     .single();
 
   if (error) throw new Error(`No se pudo leer el negocio: ${error.message}`);
-  return data;
+  return {
+    id: data.id,
+    name: data.name,
+    slug: data.slug,
+    category: data.category,
+    description: data.description,
+    whatsapp: data.whatsapp,
+    address: data.address,
+    city: data.city,
+    bookingEnabled: data.booking_enabled,
+    bookingMinNotice: data.booking_min_notice_minutes,
+    bookingMaxDays: data.booking_max_days,
+    bookingAutoConfirm: data.booking_auto_confirm,
+    bookingLinkSharedAt: data.booking_link_shared_at,
+  };
 });
 
 export type BusinessMember = {

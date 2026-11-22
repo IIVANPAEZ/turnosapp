@@ -9,6 +9,7 @@ import {
   CalendarDays,
   CheckCheck,
   CircleAlert,
+  Globe,
   Loader2,
   MessageCircle,
   Pencil,
@@ -96,6 +97,11 @@ export function AppointmentDetail({ appointment: a, businessName, timeZone, toda
               <Chip style={a.status}>{STATUS_LABELS[a.status]}</Chip>
             )}
             {a.date === today && open && started && <Chip style="in_progress">Ahora</Chip>}
+            {a.online && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-primary">
+                <Globe className="size-3" /> Reservado online
+              </span>
+            )}
           </div>
           <p className="text-sm text-muted-foreground first-letter:uppercase">
             {longDayLabel(a.date, Number(today.slice(0, 4)))} ·{" "}

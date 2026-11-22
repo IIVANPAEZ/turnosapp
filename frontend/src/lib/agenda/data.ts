@@ -41,6 +41,8 @@ export type AgendaAppointment = {
   /** Si se reprogramó: a dónde ("Jue 26, 14:00") y la fecha del turno nuevo. */
   rescheduledTo: string | null;
   rescheduledToDate: string | null;
+  /** Lo reservó el cliente desde la página pública. */
+  online: boolean;
 };
 
 export type AgendaBlock = { startMin: number; endMin: number; label: string; allDay: boolean };
@@ -81,7 +83,7 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
   let apptQuery = supabase
     .from("appointments")
     .select(
-      "id, member_id, starts_at, ends_at, status, service_name, price, price_type, notes, cancel_reason, rescheduled_to, client:clients (full_name, phone), member:business_members (color, display_name)",
+      "id, member_id, starts_at, ends_at, status, service_name, price, price_type, notes, cancel_reason, rescheduled_to, source, client:clients (full_name, phone), member:business_members (color, display_name)",
     )
     .eq("business_id", current.business.id)
     .gte("starts_at", rangeStart.toISOString())
@@ -154,6 +156,7 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
       memberName: a.member?.display_name ?? "",
       rescheduledTo: a.rescheduled_to ? (movedTo.get(a.rescheduled_to)?.label ?? "otra fecha") : null,
       rescheduledToDate: a.rescheduled_to ? (movedTo.get(a.rescheduled_to)?.date ?? null) : null,
+      online: a.source === "online",
     };
     const occupies = !a.rescheduled_to && (a.status === "pending" || a.status === "confirmed" || a.status === "completed");
     (occupies ? day.appointments : day.inactive).push(appt);
@@ -186,4 +189,59 @@ export const hasAnyAppointment = cache(async (): Promise<boolean> => {
     .select("id", { count: "exact", head: true })
     .eq("business_id", current.business.id);
   return (count ?? 0) > 0;
+});
+
+export type PendingOnline = {
+  id: string;
+  date: string;
+  start: string;
+  clientName: string;
+  clientPhone: string | null;
+  serviceName: string;
+  memberName: string;
+};
+
+/**
+ * Reservas online por confirmar (de hoy en adelante), para el aviso del Inicio.
+ * Dueño/admin ven las de todo el equipo; un profesional, solo las suyas.
+ */
+export const getPendingOnline = cache(async (): Promise<{ items: PendingOnline[]; total: number }> => {
+  const current = await getCurrentBusiness();
+  if (!current) return { items: [], total: 0 };
+  const tz = current.business.timezone;
+  const seesEveryone = current.member.role === "owner" || current.member.role === "admin";
+
+  const supabase = await createClient();
+  let query = supabase
+    .from("appointments")
+    .select("id, starts_at, service_name, client:clients (full_name, phone), member:business_members (display_name)", {
+      count: "exact",
+    })
+    .eq("business_id", current.business.id)
+    .eq("source", "online")
+    .eq("status", "pending")
+    .is("rescheduled_to", null)
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(5);
+  if (!seesEveryone) query = query.eq("member_id", current.member.id);
+
+  const { data, count, error } = await query;
+  if (error) throw new Error(`No se pudieron leer las reservas online: ${error.message}`);
+
+  return {
+    total: count ?? data.length,
+    items: data.map((a) => {
+      const p = localParts(new Date(a.starts_at), tz);
+      return {
+        id: a.id,
+        date: p.ymd,
+        start: p.hhmm,
+        clientName: a.client?.full_name ?? "Cliente",
+        clientPhone: a.client?.phone ?? null,
+        serviceName: a.service_name,
+        memberName: a.member?.display_name ?? "",
+      };
+    }),
+  };
 });

@@ -8,13 +8,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CategoryPicker } from "@/components/business/category-picker";
 import { normalizeSlugInput, SlugHint, SlugInput, useSlugAvailability } from "@/components/business/slug-field";
 import { cn } from "@/lib/utils";
 import type { BusinessSettings } from "@/lib/auth/dal";
 import { updateBusiness } from "@/lib/business/actions";
-import { businessSettingsSchema, DESCRIPTION_MAX } from "@/lib/business/schemas";
+import {
+  businessSettingsSchema,
+  DESCRIPTION_MAX,
+  MAX_DAYS_OPTIONS,
+  MIN_NOTICE_OPTIONS,
+} from "@/lib/business/schemas";
 
 type SettingsFormProps = {
   business: BusinessSettings;
@@ -31,6 +37,10 @@ function toFormValues(b: BusinessSettings) {
     whatsapp: b.whatsapp ?? "",
     address: b.address ?? "",
     city: b.city ?? "",
+    bookingEnabled: b.bookingEnabled,
+    bookingMinNotice: b.bookingMinNotice,
+    bookingMaxDays: b.bookingMaxDays,
+    bookingAutoConfirm: b.bookingAutoConfirm,
   };
 }
 
@@ -57,6 +67,10 @@ export function SettingsForm({ business, canEdit }: SettingsFormProps) {
   const slug = useWatch({ control, name: "slug" });
   const category = useWatch({ control, name: "category" });
   const description = useWatch({ control, name: "description" }) ?? "";
+  const bookingEnabled = useWatch({ control, name: "bookingEnabled" });
+  const bookingMinNotice = useWatch({ control, name: "bookingMinNotice" });
+  const bookingMaxDays = useWatch({ control, name: "bookingMaxDays" });
+  const bookingAutoConfirm = useWatch({ control, name: "bookingAutoConfirm" });
   const slugStatus = useSlugAvailability(slug, savedSlug);
   const slugTaken = slugStatus.status === "taken";
   const slugChanged = slug !== savedSlug;
@@ -177,6 +191,57 @@ export function SettingsForm({ business, canEdit }: SettingsFormProps) {
           </FieldGroup>
         </Section>
 
+        <Section
+          title="Reservas online"
+          description="Cómo y cuándo te pueden reservar tus clientes desde tu página."
+        >
+          <FieldGroup>
+            <ToggleRow
+              id="bookingEnabled"
+              label="Recibir reservas online"
+              hint={
+                bookingEnabled
+                  ? "Tus clientes eligen servicio, día y horario desde tu página."
+                  : "Pausadas: tu página muestra tus datos y el botón de WhatsApp, pero no deja reservar."
+              }
+              checked={bookingEnabled}
+              disabled={!canEdit}
+              onChange={(v) => setValue("bookingEnabled", v, { shouldDirty: true })}
+            />
+
+            <div className={cn("flex flex-col gap-6", !bookingEnabled && "opacity-50")}>
+              <OptionChips
+                label="Anticipación mínima"
+                hint="Cuánto antes del turno se puede reservar como mínimo."
+                options={MIN_NOTICE_OPTIONS}
+                value={bookingMinNotice}
+                disabled={!canEdit || !bookingEnabled}
+                onChange={(v) => setValue("bookingMinNotice", v, { shouldDirty: true })}
+              />
+              <OptionChips
+                label="Hasta cuándo se puede reservar"
+                hint="Cuántos días hacia adelante se ven en tu página."
+                options={MAX_DAYS_OPTIONS}
+                value={bookingMaxDays}
+                disabled={!canEdit || !bookingEnabled}
+                onChange={(v) => setValue("bookingMaxDays", v, { shouldDirty: true })}
+              />
+              <ToggleRow
+                id="bookingAutoConfirm"
+                label="Confirmar automáticamente"
+                hint={
+                  bookingAutoConfirm
+                    ? "Las reservas entran como “Confirmado”, sin que tengas que revisarlas."
+                    : "Las reservas entran como “Por confirmar”: las revisás y confirmás vos."
+                }
+                checked={bookingAutoConfirm}
+                disabled={!canEdit || !bookingEnabled}
+                onChange={(v) => setValue("bookingAutoConfirm", v, { shouldDirty: true })}
+              />
+            </div>
+          </FieldGroup>
+        </Section>
+
         <Section title="Contacto y ubicación" description="Para que tus clientes te encuentren y te escriban.">
           <FieldGroup>
             <Field data-invalid={!!errors.whatsapp}>
@@ -252,6 +317,86 @@ export function SettingsForm({ business, canEdit }: SettingsFormProps) {
         </div>
       )}
     </form>
+  );
+}
+
+/** Interruptor con título y explicación. */
+function ToggleRow({
+  id,
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <label htmlFor={id} className="text-sm font-medium">
+          {label}
+        </label>
+        <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>
+      </div>
+      <Switch id={id} checked={checked} disabled={disabled} onCheckedChange={(v) => onChange(v)} className="mt-0.5" />
+    </div>
+  );
+}
+
+/** Opciones fijas como pastillas (elegir una). */
+function OptionChips({
+  label,
+  hint,
+  options,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  options: readonly { value: number; label: string }[];
+  value: number;
+  disabled?: boolean;
+  onChange: (value: number) => void;
+}) {
+  // Si en la base hay un valor que no está en la lista, igual se muestra.
+  const list = options.some((o) => o.value === value) ? options : [...options, { value, label: `${value}` }];
+  return (
+    <div className="flex flex-col gap-2">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>
+      </div>
+      <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+        {list.map((o) => {
+          const selected = o.value === value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              onClick={() => onChange(o.value)}
+              className={cn(
+                "h-9 rounded-lg border px-3 text-sm transition-colors disabled:cursor-not-allowed",
+                selected
+                  ? "border-primary/70 bg-primary-soft font-medium text-primary"
+                  : "bg-inset text-muted-foreground hover:border-line-strong hover:text-foreground",
+              )}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

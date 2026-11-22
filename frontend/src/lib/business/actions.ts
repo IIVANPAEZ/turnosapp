@@ -121,6 +121,7 @@ export async function updateBusiness(input: BusinessSettingsInput): Promise<Upda
   const parsed = businessSettingsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Revisá los datos del formulario." };
   const { name, slug, category, description, whatsapp, address, city } = parsed.data;
+  const { bookingEnabled, bookingMinNotice, bookingMaxDays, bookingAutoConfirm } = parsed.data;
 
   const current = await getCurrentBusiness();
   if (!current) redirect("/login?next=/dashboard/configuracion");
@@ -141,6 +142,10 @@ export async function updateBusiness(input: BusinessSettingsInput): Promise<Upda
       phone: whatsapp || null,
       address: address || null,
       city: city || null,
+      booking_enabled: bookingEnabled,
+      booking_min_notice_minutes: bookingMinNotice,
+      booking_max_days: bookingMaxDays,
+      booking_auto_confirm: bookingAutoConfirm,
     })
     .eq("id", current.business.id)
     .select("id");
@@ -158,4 +163,19 @@ export async function updateBusiness(input: BusinessSettingsInput): Promise<Upda
   // Refresca todo el panel (sidebar, inicio y esta pantalla).
   revalidatePath("/dashboard", "layout");
   return { ok: true, message: "Cambios guardados." };
+}
+
+/**
+ * Primeros pasos → "Compartí tu link de reservas": se marca la primera vez que
+ * alguien del negocio copia o comparte el link. Si falla no molesta al usuario.
+ */
+export async function markBookingLinkShared(): Promise<void> {
+  if (!(await getCurrentUser())) return;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_booking_link_shared");
+  if (error) {
+    console.error("[inicio] mark_booking_link_shared:", error.code, error.message);
+    return;
+  }
+  revalidatePath("/dashboard");
 }

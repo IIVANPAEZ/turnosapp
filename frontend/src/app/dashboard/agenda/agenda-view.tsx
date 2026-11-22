@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ChevronDown, Clock, Plus } from "lucide-react";
+import { ChevronDown, Clock, Globe, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_LABELS, STATUS_STYLES } from "@/lib/appointments/status";
 import type { AgendaAppointment, AgendaDay } from "@/lib/agenda/data";
@@ -363,7 +363,7 @@ function AppointmentChip({
         e.stopPropagation();
         onOpen?.(a.id);
       }}
-      title={`${a.start}–${a.end} · ${a.clientName} · ${a.serviceName}${who ? ` · ${a.memberName}` : ""} · ${STATUS_LABELS[a.status]}`}
+      title={`${a.start}–${a.end} · ${a.clientName} · ${a.serviceName}${who ? ` · ${a.memberName}` : ""} · ${STATUS_LABELS[a.status]}${a.online ? " · Reservado online" : ""}`}
     >
       {week ? (
         <>
@@ -371,6 +371,7 @@ function AppointmentChip({
           <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] leading-tight text-muted-foreground">
             <StatusDot status={a.status} />
             <span className="font-mono tabular">{a.start}</span>
+            {a.online && <Globe className="size-3 shrink-0 text-primary" aria-label="Reservado online" />}
             <span className="truncate">· {who ?? a.serviceName}</span>
           </p>
         </>
@@ -381,6 +382,11 @@ function AppointmentChip({
           </span>
           <span className="min-w-0 truncate text-sm font-medium">{a.clientName}</span>
           <span className="min-w-0 truncate text-xs text-muted-foreground">{a.serviceName}</span>
+          {a.online && (
+            <span className="flex items-center gap-1 text-xs text-primary">
+              <Globe className="size-3" aria-hidden="true" /> Online
+            </span>
+          )}
           {who && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <span className="size-1.5 rounded-full" style={{ backgroundColor: a.memberColor }} aria-hidden="true" />
