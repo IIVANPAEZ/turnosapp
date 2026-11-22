@@ -232,6 +232,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          notes: string | null
           phone: string | null
           phone_key: string | null
           updated_at: string
@@ -241,6 +242,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id?: string
+          notes?: string | null
           phone?: string | null
           phone_key?: string | null
           updated_at?: string
@@ -250,6 +252,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          notes?: string | null
           phone?: string | null
           phone_key?: string | null
           updated_at?: string
@@ -261,6 +264,86 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "businesses"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          appointment_id: string
+          business_id: string
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          member_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          note: string | null
+          paid_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          appointment_id: string
+          business_id: string
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          member_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          note?: string | null
+          paid_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string
+          business_id?: string
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          member_id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          note?: string | null
+          paid_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_business_id_appointment_id_fkey"
+            columns: ["business_id", "appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["business_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_business_id_client_id_fkey"
+            columns: ["business_id", "client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["business_id", "id"]
+          },
+          {
+            foreignKeyName: "payments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_business_id_member_id_fkey"
+            columns: ["business_id", "member_id"]
+            isOneToOne: false
+            referencedRelation: "business_members"
+            referencedColumns: ["business_id", "id"]
           },
         ]
       }
@@ -528,6 +611,15 @@ export type Database = {
           price_type: Database["public"]["Enums"]["price_type"]
         }[]
       }
+      record_payment: {
+        Args: {
+          p_amount: number
+          p_appointment_id: string
+          p_method: Database["public"]["Enums"]["payment_method"]
+          p_note?: string
+        }
+        Returns: string
+      }
       reschedule_appointment: {
         Args: {
           p_appointment_id: string
@@ -547,6 +639,10 @@ export type Database = {
       }
       set_working_hours: {
         Args: { p_hours: Json; p_member_id: string }
+        Returns: undefined
+      }
+      void_payment: {
+        Args: { p_payment_id: string; p_reason?: string }
         Returns: undefined
       }
     }
@@ -569,6 +665,7 @@ export type Database = {
         | "tattoo"
         | "other"
       member_role: "owner" | "admin" | "staff"
+      payment_method: "cash" | "transfer"
       price_type: "fixed" | "from"
     }
     CompositeTypes: {
@@ -717,6 +814,7 @@ export const Constants = {
         "other",
       ],
       member_role: ["owner", "admin", "staff"],
+      payment_method: ["cash", "transfer"],
       price_type: ["fixed", "from"],
     },
   },
