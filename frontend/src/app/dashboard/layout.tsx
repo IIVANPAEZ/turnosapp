@@ -3,13 +3,15 @@ import { Suspense } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { HeaderAccount, HeaderAccountSkeleton } from "@/components/layout/header-account";
+import { BottomNav } from "@/components/layout/bottom-nav";
 
 // App instalable: el manifiesto se enlaza solo en el panel y en el acceso (no en la página pública).
 export const metadata: Metadata = { manifest: "/app.webmanifest" };
 
 export default function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
+  // h-dvh: alto real de la pantalla del celular (sin la barra del navegador).
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AppHeader
@@ -21,7 +23,11 @@ export default function DashboardLayout({ children }: LayoutProps<"/dashboard">)
             </Suspense>
           }
         />
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="flex-1 overflow-y-auto py-6 pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] md:py-8 md:pr-8 md:pl-8">
+          {children}
+        </main>
+        {/* Celular: barra de secciones abajo (el contenido termina arriba de ella). */}
+        <BottomNav />
       </div>
     </div>
   );
