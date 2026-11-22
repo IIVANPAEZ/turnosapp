@@ -26,7 +26,8 @@ SaaS de gestión de turnos para cualquier negocio o profesional que trabaje con 
 │       │   └── dashboard/    Panel privado
 │       ├── components/       UI (shadcn en ui/), la tira del día, piezas por módulo (appointments/: "¿Cómo te pagó?")
 │       ├── lib/
-│       │   ├── supabase/     Clientes (navegador/servidor/público sin sesión), proxy de sesión, tipos generados
+│       │   ├── .github/workflows/        CI: lint, TypeScript, pruebas rápidas y build en cada push
+├── supabase/     Clientes (navegador/servidor/público sin sesión), proxy de sesión, tipos generados
 │       │   ├── public/       Página pública: datos del negocio, horarios libres, reservar, archivo .ics
 │       │   ├── auth/         DAL (quién es el usuario y su negocio), Server Actions, validaciones
 │       │   ├── business/     Onboarding, configuración del negocio, slug, profesionales
@@ -40,6 +41,7 @@ SaaS de gestión de turnos para cualquier negocio o profesional que trabaje con 
 │       │   ├── whatsapp.ts   Links de WhatsApp con mensaje listo
 │       │   └── format.ts     Guaraníes (₲ 150.000) y duraciones (1 h 30 min)
 │       └── proxy.ts          Renueva la sesión y redirige según haya sesión o no
+│   └── tests/                Pruebas: unit/ (Vitest) y e2e/ (Playwright)
 │   └── .interface-design/    Guía del sistema de diseño (colores, tipografía, patrones)
 ├── supabase/
 │   └── migrations/           Esquema de la base (versionado, se aplica con la CLI)
@@ -85,6 +87,22 @@ npm run dev        # http://localhost:3000
 | `npm run typecheck` | Chequeo de TypeScript |
 | `npm run lint` | ESLint |
 | `npm run db:types` | Regenera `src/lib/supabase/database.types.ts` desde la base. Correr después de cada migración. |
+| `npm test` | Pruebas rápidas de la lógica (Vitest, `tests/unit/`, menos de 1 s) |
+| `npm run test:e2e` | Pruebas de punta a punta (Playwright, `tests/e2e/`): compila, levanta la app en el puerto 3124 y recorre la app en Chrome |
+| `npm run test:e2e:ui` | Lo mismo, con una ventana para verlas paso a paso |
+
+### Pruebas
+- **Rápidas (Vitest):** fechas y zona horaria, horarios libres, WhatsApp, guaraníes, períodos de Ingresos, archivo de calendario, slug, horarios y validaciones.
+- **De punta a punta (Playwright):** registro y alta del negocio; finalizar con cobro, anular y volver a cobrar; iniciar → finalizar desde Inicio; reserva pública y confirmación; semanas, link inexistente y reservas pausadas; clientes; ingresos (y que una profesional no los vea); app instalable; navegación en el celular.
+  - Usan el Chrome instalado (no descargan navegadores) y el proyecto de Supabase real con usuarios `e2e+pw-…@turnosapp-test.dev`, que se borran al terminar (`tests/e2e/global-teardown.ts`). Necesitan la CLI de Supabase vinculada.
+  - La prueba "Iniciar → Finalizar desde Inicio" se saltea sola cerca de la medianoche (arma un turno de hoy a 30 minutos).
+- **GitHub Actions** (`.github/workflows/ci.yml`): en cada push corre lint, TypeScript, las pruebas rápidas y el build, con valores de relleno para Supabase (las claves reales nunca se suben). Las de punta a punta se corren en la compu.
+
+### Instalar la app (PWA)
+- **Android / computadora (Chrome, Edge):** botón **Instalar** en Inicio, o "Instalar app" en el menú de la cuenta (la inicial, arriba a la derecha). También el ícono de instalar en la barra de direcciones.
+- **iPhone (Safari):** Compartir → **"Agregar a inicio"** (la app lo explica en Inicio y en el menú).
+- Hace falta **HTTPS** (en la compu, `localhost` también sirve). El manifiesto (`/app.webmanifest`) solo se enlaza en el panel y en el acceso: la página pública de reservas no ofrece instalar el panel a los clientes.
+- **Sin conexión:** aviso "Sin conexión" y reintento automático de navegaciones y acciones al volver la señal (`experimental.useOffline`). No se guardan datos en el celular.
 
 ### Cambios en la base
 ```bash
@@ -132,7 +150,7 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 | Sprint 3: Agenda | ✅ |
 | Sprint 4: Reservas públicas | ✅ |
 | Sprint 5: Clientes, pagos y dashboard | ✅ |
-| Sprint 6: PWA y pruebas | Pendiente |
+| Sprint 6: PWA y pruebas | ✅ |
 | WhatsApp por profesional | Post-MVP |
 
 ### Sprint 1 — qué incluye
@@ -170,11 +188,22 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 - **Finalizar cita = cobrar:** "¿Cómo te pagó?" con el monto del servicio (editable) y **Efectivo** / **Transferencia o tarjeta** — un toque finaliza y registra el cobro. "Finalizar sin cobrar" para casos especiales; después, "Registrar cobro" o "Anular cobro" desde el detalle. Pagos manuales: el negocio cobra por su cuenta; **un cobro por turno**, sin parciales ni ingresos sueltos (por ahora).
 - **Ingresos** (`/dashboard/ingresos`, solo dueño/admin): período (hoy, semana, mes, mes anterior o fechas), cobrado vs. período anterior, turnos atendidos, ticket promedio, falta cobrar (con "Cobrar" ahí mismo), gráfico por día, desgloses por forma de pago, servicio y profesional, % no vino, clientes nuevos, % reservas online y lista de cobros. **Inicio:** tira "Hoy cobraste ₲ … · Falta cobrar ₲ …".
 
+### Sprint 6 — qué incluye
+- **App instalable:** manifiesto (solo en el panel y el acceso), íconos con el logo (Android, iPhone, favicon), "Instalá TurnosApp" en Inicio ("Ahora no" la oculta 30 días) e "Instalar app" en el menú de la cuenta; en iPhone, los pasos de Compartir → Agregar a inicio.
+- **Sin conexión:** pastilla "Sin conexión…" abajo y reintento automático.
+- **Celular como app:** barra fija abajo (Inicio · Agenda · Clientes · Ingresos · Más), bordes del iPhone (safe-area), alto real de pantalla (`dvh`).
+- **Pantallas de carga, error (Reintentar) y "No encontrada"**, también en la página pública.
+- **Página pública:** elegir el día por semana (lunes a domingo, flechas, salta sola a la primera semana con lugar) en lugar de la tira que no se podía deslizar con el mouse.
+- **Pruebas** guardadas (Vitest + Playwright) y **CI** en GitHub.
+- **Datos siempre de la visita actual** (`connection()` al leer la sesión y en la página pública): sin avisos de precarga en el servidor, y si Supabase falla la página pública muestra "Algo salió mal · Reintentar" (no "No encontramos esta página").
+
 ### Pendientes conocidos
 - Al eliminar la cuenta de un dueño, su negocio queda sin dueño: implementar "eliminar cuenta" borrando también el negocio.
 - Antes de producción: confirmación de email + SMTP propio + templates en español; activar la protección contra contraseñas filtradas (Auth → Passwords).
 - Feriados trasladables (1 de marzo, 12 de junio, 29 de setiembre): confirmar cada año la fecha que fija el gobierno.
 - Agregar personal (varios profesionales) y qué servicios hace cada uno: post-MVP; las tablas ya lo contemplan. Al hacerlo: restringir en RLS que el personal vea solo sus turnos y sumar al dueño un selector "Todos / Mis turnos / <profesional>" en la agenda.
+- Antes de producción: encabezados de seguridad HTTP (`X-Frame-Options`/`frame-ancestors`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) en `next.config.ts`.
+- `npm audit`: 4 avisos moderados de `minimatch` dentro de la CLI de shadcn (solo se usa al compilar los estilos; no corre en la app).
 - Ingresos sueltos (venta de productos) y cobros parciales: decididos para más adelante.
 - "Deshacer inicio" vuelve el turno a Confirmado pero conserva la primera hora de inicio guardada.
 - Dominio real: los links copiados usan el dominio donde está abierta la app; la tarjeta muestra `turnosapp.com/…` (`PUBLIC_SITE_DOMAIN` en `src/lib/config.ts`).

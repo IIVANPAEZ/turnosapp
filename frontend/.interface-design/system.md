@@ -111,6 +111,16 @@ Escala usada: título de página `text-2xl`–`text-3xl` · título de tarjeta `
 - **Cobro en el turno:** línea verde "Cobrado ₲ … · Efectivo" + "Anular cobro" (confirmación en línea); o ámbar "Sin cobrar" + "Registrar cobro".
 - **Ingresos:** número principal grande (mono `text-3xl`, resplandor ámbar suave) con la comparación (flecha verde/ámbar + %); tarjetas KPI (en el celular, de a dos); gráfico de una sola serie en ámbar: columnas `max-w-6` con punta redondeada de 4px, 3 líneas guía `foreground/7%`, eje con montos compactos ("₲ 100 mil"), tooltip al pasar/tocar y tabla oculta para lectores de pantalla. Desgloses como barras horizontales finas (`h-1.5 bg-primary` sobre `bg-inset`) con nombre, cantidad, monto y %.
 
+## App en el celular (Sprint 6)
+
+- **Barra de secciones abajo** (`BottomNav`, solo `<md`): mismo fondo que el sidebar (`bg-sidebar`) con `border-t`, alto 64px + `env(safe-area-inset-bottom)`. 5 pestañas: ícono en una pastilla `h-7 w-12 rounded-full` (activa `bg-primary-soft` + ícono ámbar) y etiqueta `text-[11px]`. "Más" abre un `Sheet` desde abajo con las demás secciones (filas `h-12`) y Cerrar sesión. Es parte del flujo del layout (no flota): el contenido termina arriba; lo que flota (botón "+", aviso sin conexión) se sube con `bottom-[calc(…+env(safe-area-inset-bottom))]`.
+- **Encabezado en el celular:** logo ámbar `size-8 rounded-lg` + título; sin menú de tres líneas.
+- **Menú de la cuenta:** la inicial abre un `DropdownMenu` (nombre · rol · negocio, Instalar app, Configuración, Cerrar sesión).
+- **"Instalá TurnosApp":** tarjeta `bg-card` con ícono `Smartphone` en `bg-primary-soft`, botón Instalar ámbar (o los pasos de iPhone numerados en círculos `bg-raised`), ✕ "Ahora no".
+- **Sin conexión:** pastilla `bg-warning` con texto oscuro, flotando abajo y centrada (no tapa el encabezado).
+- **Error / No encontrada:** centrado, ícono en cuadrado (`bg-warning-soft` para error, `border bg-card` para no encontrada), título `text-xl`, acción principal ámbar ("Reintentar" / "Ir a mi panel") + secundaria ghost.
+- **Elegir día en la página pública (vista por semana):** flechas `size-10 rounded-lg border bg-card` a los lados del título ("Esta semana", "La semana que viene", "Semana del 30 nov" + rango), y 7 celdas `grid-cols-7` (día corto / número `text-lg` / cantidad libre en mono verde o "—"); elegida `border-primary/70 bg-primary-soft`; pasadas o fuera de rango apagadas.
+
 ## Patrones de componentes
 
 - **Pantallas públicas** (landing, login, registro, recuperar): `BrandHero` (resplandor `.glow-ambar`, titular, tira del día de ejemplo) + formulario directo sobre el fondo con `AuthCard` (sin tarjeta). Celular: marca arriba; escritorio: lado a lado.
