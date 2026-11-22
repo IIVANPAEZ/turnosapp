@@ -2,14 +2,16 @@
 
 import { useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarCheck2, Check, CheckCheck, CircleAlert, Coffee, Loader2, MoonStar, Plus } from "lucide-react";
+import { ArrowRight, CalendarCheck2, Check, CheckCheck, CircleAlert, Coffee, Loader2, MoonStar, Play, Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { FinishPanel } from "@/components/appointments/finish-panel";
+import type { PaymentMethod } from "@/lib/clients/schemas";
 import {
-  isOpenStatus,
+  isWaitingStatus,
+  START_EARLY_MINUTES,
   STATUS_LABELS,
   STATUS_STYLES,
-  type AppointmentStatus,
   type TodayAppointment,
 } from "@/lib/appointments/status";
 
@@ -37,8 +39,10 @@ type TodayPanelProps = {
   demo?: { nowMinutes: number };
   /** Tocar un turno (abre su detalle). */
   onOpen?: (id: string) => void;
-  /** Finalizar / No vino. Devuelve un error si no se pudo. */
-  onAction?: (id: string, status: Extract<AppointmentStatus, "completed" | "no_show">) => Promise<string | null>;
+  /** Iniciar / No vino. Devuelve un error si no se pudo. */
+  onAction?: (id: string, status: "in_progress" | "no_show") => Promise<string | null>;
+  /** Finalizar cita con el cobro (method null = sin cobrar). Devuelve un error si no se pudo. */
+  onFinish?: (id: string, method: PaymentMethod | null, amount: number | null) => Promise<string | null>;
   /** "+ Nuevo turno" */
   onCreate?: () => void;
   className?: string;
@@ -75,6 +79,7 @@ export function TodayPanel({
   demo,
   onOpen,
   onAction,
+  onFinish,
   onCreate,
   className,
 }: TodayPanelProps) {
@@ -83,12 +88,32 @@ export function TodayPanel({
   const now = demo ? demo.nowMinutes : liveNow;
 
   const sorted = [...appointments].sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
-  const active = sorted.filter((a) => isOpenStatus(a.status) && !a.rescheduledTo);
-  const inProgress = active.filter((a) => now >= 0 && toMinutes(a.start) <= now && now < toMinutes(a.end));
-  const upcoming = active.filter((a) => now < 0 || toMinutes(a.start) > now);
+  const waiting = sorted.filter((a) => isWaitingStatus(a.status) && !a.rescheduledTo);
+  // "En curso": los que se iniciaron con el botón. (En la muestra del login, por la hora.)
+  const inProgress = demo
+    ? waiting.filter((a) => toMinutes(a.start) <= now && now < toMinutes(a.end))
+    : sorted.filter((a) => a.status === "in_progress" && !a.rescheduledTo);
+  // Próximos: por venir y todavía no terminó su horario (incluye "ya es la hora" sin iniciar).
+  const upcoming = waiting.filter((a) => !inProgress.includes(a) && (now < 0 || toMinutes(a.end) > now));
   const done = sorted.filter((a) => !inProgress.includes(a) && !upcoming.includes(a)).reverse();
   // Ya pasó la hora pero nadie marcó si vino.
-  const unclosed = done.filter((a) => isOpenStatus(a.status) && !a.rescheduledTo);
+  const unclosed = done.filter((a) => isWaitingStatus(a.status) && !a.rescheduledTo);
+  const active = [...inProgress, ...waiting.filter((a) => !inProgress.includes(a))];
+  // Turno con el recuadro "¿Cómo te pagó?" abierto.
+  const [finishing, setFinishing] = useState<string | null>(null);
+  const finishPanel = (a: TodayAppointment) =>
+    finishing === a.id && onFinish ? (
+      <FinishPanel
+        price={a.price ?? 0}
+        allowSkip
+        onCancel={() => setFinishing(null)}
+        onSubmit={async (method, amount) => {
+          const err = await onFinish(a.id, method, amount);
+          if (!err) setFinishing(null);
+          return err;
+        }}
+      />
+    ) : null;
 
   // Pestaña automática: "En curso" si hay alguien, si no "Próximos". El usuario puede cambiarla.
   const [chosen, setChosen] = useState<TabKey | null>(null);
@@ -191,9 +216,22 @@ export function TodayPanel({
                       <div className="h-1.5 overflow-hidden rounded-full bg-inset">
                         <div className="h-full rounded-full bg-primary" style={{ width: `${(elapsed / totalMin) * 100}%` }} />
                       </div>
-                      <p className="text-xs text-muted-foreground">Termina en {inMinutes(totalMin - elapsed)}</p>
+                      <p className={cn("text-xs", now >= toMinutes(a.end) ? "text-warning" : "text-muted-foreground")}>
+                        {now < toMinutes(a.start)
+                          ? `Termina a las ${a.end}`
+                          : now >= toMinutes(a.end)
+                            ? `Se pasó de su horario (terminaba a las ${a.end})`
+                            : `Termina en ${inMinutes(totalMin - elapsed)}`}
+                      </p>
                     </div>
-                    <QuickActions id={a.id} demo={!!demo} onAction={onAction} labels={["Finalizar", "No vino"]} />
+                    {finishing === a.id ? (
+                      finishPanel(a)
+                    ) : (
+                      <QuickActions
+                        demo={!!demo}
+                        actions={[{ label: "Finalizar cita", icon: CheckCheck, primary: true, run: async () => (setFinishing(a.id), null) }]}
+                      />
+                    )}
                   </li>
                 );
               })}
@@ -218,16 +256,47 @@ export function TodayPanel({
         <TabsContent value="upcoming" className="min-h-44">
           {upcoming.length ? (
             <ul className="flex flex-col divide-y">
-              {upcoming.map((a) => (
-                <li key={a.id} className="py-3 first:pt-1 last:pb-0">
-                  <AppointmentRow
-                    appointment={a}
-                    chip={<Chip style={a.status}>{STATUS_LABELS[a.status]}</Chip>}
-                    hint={now >= 0 ? `en ${inMinutes(toMinutes(a.start) - now)}` : undefined}
-                    onOpen={onOpen}
-                  />
-                </li>
-              ))}
+              {upcoming.map((a) => {
+                const startsIn = now >= 0 ? toMinutes(a.start) - now : Infinity;
+                const canStart = !demo && !!onAction && startsIn <= START_EARLY_MINUTES;
+                return (
+                  <li key={a.id} className="flex flex-col gap-2.5 py-3 first:pt-1 last:pb-0">
+                    <AppointmentRow
+                      appointment={a}
+                      chip={<Chip style={a.status}>{STATUS_LABELS[a.status]}</Chip>}
+                      hint={
+                        now < 0
+                          ? undefined
+                          : startsIn > 0
+                            ? `en ${inMinutes(startsIn)}`
+                            : startsIn === 0
+                              ? "es ahora"
+                              : `empezaba hace ${inMinutes(-startsIn)}`
+                      }
+                      onOpen={onOpen}
+                    />
+                    {canStart &&
+                      (finishing === a.id ? (
+                        finishPanel(a)
+                      ) : (
+                        <div className="pl-22">
+                          <QuickActions
+                            small
+                            actions={[
+                              { label: "Iniciar cita", icon: Play, primary: true, run: () => onAction!(a.id, "in_progress") },
+                              ...(startsIn <= 0
+                                ? [
+                                    { label: "Finalizar", run: async () => (setFinishing(a.id), null) },
+                                    { label: "No vino", run: () => onAction!(a.id, "no_show") },
+                                  ]
+                                : []),
+                            ]}
+                          />
+                        </div>
+                      ))}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <EmptyState
@@ -242,7 +311,7 @@ export function TodayPanel({
           {done.length ? (
             <ul className="flex flex-col divide-y">
               {done.map((a) => {
-                const isUnclosed = isOpenStatus(a.status) && !a.rescheduledTo;
+                const isUnclosed = isWaitingStatus(a.status) && !a.rescheduledTo;
                 return (
                   <li key={a.id} className="flex flex-col gap-2.5 py-3 first:pt-1 last:pb-0">
                     <AppointmentRow
@@ -259,11 +328,20 @@ export function TodayPanel({
                         )
                       }
                     />
-                    {isUnclosed && !demo && (
-                      <div className="pl-22">
-                        <QuickActions id={a.id} demo={false} onAction={onAction} labels={["Vino", "No vino"]} small />
-                      </div>
-                    )}
+                    {isUnclosed && !demo && onAction &&
+                      (finishing === a.id ? (
+                        finishPanel(a)
+                      ) : (
+                        <div className="pl-22">
+                          <QuickActions
+                            small
+                            actions={[
+                              { label: "Vino", icon: Check, primary: true, run: async () => (setFinishing(a.id), null) },
+                              { label: "No vino", run: () => onAction(a.id, "no_show") },
+                            ]}
+                          />
+                        </div>
+                      ))}
                   </li>
                 );
               })}
@@ -361,22 +439,18 @@ function Chip({ style, children }: { style: keyof typeof STATUS_STYLES; children
   );
 }
 
-/** Finalizar / No vino (o Vino / No vino). En la muestra del login son solo visuales. */
-function QuickActions({
-  id,
-  demo,
-  onAction,
-  labels,
-  small,
-}: {
-  id: string;
-  demo: boolean;
-  onAction?: TodayPanelProps["onAction"];
-  labels: [string, string];
-  small?: boolean;
-}) {
+type QuickAction = {
+  label: string;
+  icon?: React.ElementType;
+  primary?: boolean;
+  /** Devuelve un error para mostrar, o null. */
+  run: () => Promise<string | null>;
+};
+
+/** Botones rápidos de una fila (Iniciar, Finalizar, Vino, No vino). En la muestra del login son solo visuales. */
+function QuickActions({ actions, demo, small }: { actions: QuickAction[]; demo?: boolean; small?: boolean }) {
   const [pending, startTransition] = useTransition();
-  const [busy, setBusy] = useState<"completed" | "no_show" | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const base = cn(
     "inline-flex items-center gap-1.5 rounded-lg font-medium",
@@ -385,37 +459,50 @@ function QuickActions({
   const primary = cn(base, "bg-primary text-primary-foreground");
   const secondary = cn(base, "border border-line-strong text-foreground");
 
-  if (demo || !onAction) {
+  if (demo) {
     return (
       <div className="flex gap-2" aria-hidden="true">
-        <span className={primary}>
-          <CheckCheck className="size-4" /> {labels[0]}
-        </span>
-        <span className={secondary}>{labels[1]}</span>
+        {actions.map((x) => (
+          <span key={x.label} className={x.primary ? primary : secondary}>
+            {x.icon && <x.icon className="size-4" />} {x.label}
+          </span>
+        ))}
       </div>
     );
   }
 
-  const act = (status: "completed" | "no_show") =>
+  const act = (x: QuickAction) =>
     startTransition(async () => {
-      setBusy(status);
+      setBusy(x.label);
       setError(null);
-      const err = await onAction(id, status);
+      const err = await x.run();
       if (err) setError(err);
       setBusy(null);
     });
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex gap-2">
-        <button type="button" disabled={pending} onClick={() => act("completed")} className={cn(primary, "transition-opacity hover:opacity-90 disabled:opacity-60")}>
-          {busy === "completed" ? <Loader2 className="size-4 animate-spin" /> : small ? <Check className="size-3.5" /> : <CheckCheck className="size-4" />}
-          {labels[0]}
-        </button>
-        <button type="button" disabled={pending} onClick={() => act("no_show")} className={cn(secondary, "transition-colors hover:bg-raised disabled:opacity-60")}>
-          {busy === "no_show" && <Loader2 className="size-4 animate-spin" />}
-          {labels[1]}
-        </button>
+      <div className="flex flex-wrap gap-2">
+        {actions.map((x) => (
+          <button
+            key={x.label}
+            type="button"
+            disabled={pending}
+            onClick={() => act(x)}
+            className={cn(
+              x.primary ? primary : secondary,
+              x.primary ? "transition-opacity hover:opacity-90" : "transition-colors hover:bg-raised",
+              "disabled:opacity-60",
+            )}
+          >
+            {busy === x.label ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              x.icon && <x.icon className={small ? "size-3.5" : "size-4"} />
+            )}
+            {x.label}
+          </button>
+        ))}
       </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>

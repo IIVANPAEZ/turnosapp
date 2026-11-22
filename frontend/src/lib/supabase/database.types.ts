@@ -31,6 +31,7 @@ export type Database = {
           service_id: string
           service_name: string
           source: Database["public"]["Enums"]["appointment_source"]
+          started_at: string | null
           starts_at: string
           status: Database["public"]["Enums"]["appointment_status"]
           status_changed_at: string
@@ -52,6 +53,7 @@ export type Database = {
           service_id: string
           service_name: string
           source?: Database["public"]["Enums"]["appointment_source"]
+          started_at?: string | null
           starts_at: string
           status?: Database["public"]["Enums"]["appointment_status"]
           status_changed_at?: string
@@ -73,6 +75,7 @@ export type Database = {
           service_id?: string
           service_name?: string
           source?: Database["public"]["Enums"]["appointment_source"]
+          started_at?: string | null
           starts_at?: string
           status?: Database["public"]["Enums"]["appointment_status"]
           status_changed_at?: string
@@ -586,6 +589,14 @@ export type Database = {
         }
         Returns: string
       }
+      finish_appointment: {
+        Args: {
+          p_amount?: number
+          p_appointment_id: string
+          p_method?: Database["public"]["Enums"]["payment_method"]
+        }
+        Returns: undefined
+      }
       is_slug_available: { Args: { p_slug: string }; Returns: boolean }
       mark_booking_link_shared: { Args: never; Returns: undefined }
       public_availability: {
@@ -666,6 +677,7 @@ export type Database = {
       appointment_status:
         | "pending"
         | "confirmed"
+        | "in_progress"
         | "completed"
         | "cancelled"
         | "no_show"
@@ -813,6 +825,7 @@ export const Constants = {
       appointment_status: [
         "pending",
         "confirmed",
+        "in_progress",
         "completed",
         "cancelled",
         "no_show",

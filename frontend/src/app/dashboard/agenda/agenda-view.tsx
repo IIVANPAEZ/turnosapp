@@ -393,7 +393,8 @@ function AppointmentChip({
               {who}
             </span>
           )}
-          <span className="ml-auto">
+          <span className="ml-auto flex items-center gap-2">
+            {a.status === "completed" && !a.payment && <span className="text-xs text-warning">Sin cobrar</span>}
             <StatusChip status={a.status} />
           </span>
         </div>
@@ -407,6 +408,7 @@ function StatusDot({ status }: { status: AgendaAppointment["status"] }) {
   const color: Record<AgendaAppointment["status"], string> = {
     pending: "bg-muted-foreground",
     confirmed: "bg-primary",
+    in_progress: "bg-primary ring-2 ring-primary/30",
     completed: "bg-success",
     cancelled: "bg-destructive",
     no_show: "bg-warning",

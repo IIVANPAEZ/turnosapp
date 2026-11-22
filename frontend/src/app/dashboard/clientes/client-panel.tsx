@@ -79,7 +79,7 @@ export function ClientPanel({ clientId, today, services, onNotice, onClose }: Cl
   }
 
   const upcoming = detail.appointments
-    .filter((a) => !a.rescheduled && (a.status === "pending" || a.status === "confirmed") && a.date >= today)
+    .filter((a) => !a.rescheduled && (a.status === "pending" || a.status === "confirmed" || a.status === "in_progress") && a.date >= today)
     .reverse();
   const upcomingIds = new Set(upcoming.map((a) => a.id));
   const history = detail.appointments.filter((a) => !upcomingIds.has(a.id));

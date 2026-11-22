@@ -20,7 +20,8 @@ export type PaymentMethod = "cash" | "transfer";
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: "Efectivo",
-  transfer: "Transferencia",
+  // En la base es "transfer"; incluye tarjeta (el negocio solo anota cómo le pagaron).
+  transfer: "Transferencia o tarjeta",
 };
 
 /** Etiquetas automáticas de la lista. */

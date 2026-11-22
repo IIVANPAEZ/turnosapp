@@ -1,9 +1,9 @@
 /**
  * Estados del turno (se guardan en la base a partir del Sprint 3).
- * "En curso" no es un estado: se calcula con la hora actual.
+ * "En curso" (in_progress) se guarda al tocar "Iniciar" (Sprint 5).
  * "Reprogramado" es una marca del turno original que apunta al nuevo.
  */
-export type AppointmentStatus = "pending" | "confirmed" | "completed" | "cancelled" | "no_show";
+export type AppointmentStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
 
 /** Turno de hoy, tal como lo muestra la tarjeta "Hoy" del inicio. */
 export type TodayAppointment = {
@@ -16,11 +16,14 @@ export type TodayAppointment = {
   status: AppointmentStatus;
   /** Si se reprogramó: a dónde se movió (ej. "jue 14:00"). */
   rescheduledTo?: string | null;
+  /** Precio del turno (para precargar el cobro al finalizar). */
+  price?: number;
 };
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
   pending: "Por confirmar",
   confirmed: "Confirmado",
+  in_progress: "En curso",
   completed: "Finalizado",
   cancelled: "Cancelado",
   no_show: "No vino",
@@ -37,7 +40,15 @@ export const STATUS_STYLES: Record<AppointmentStatus | "rescheduled" | "in_progr
   in_progress: "bg-primary text-primary-foreground",
 };
 
-/** Un turno "abierto" todavía puede estar en curso o por venir. */
+/** Un turno "abierto" todavía no se cerró: por venir o en curso. */
 export function isOpenStatus(status: AppointmentStatus) {
+  return status === "pending" || status === "confirmed" || status === "in_progress";
+}
+
+/** Por venir: todavía no empezó (ni se marcó como iniciado). */
+export function isWaitingStatus(status: AppointmentStatus) {
   return status === "pending" || status === "confirmed";
 }
+
+/** Minutos antes de la hora en que ya se puede tocar "Iniciar" (el cliente llegó antes). */
+export const START_EARLY_MINUTES = 60;

@@ -10,6 +10,7 @@ import {
   CheckCheck,
   CircleAlert,
   Globe,
+  Play,
   Loader2,
   MessageCircle,
   Pencil,
@@ -28,13 +29,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { TimeSelect } from "@/components/schedule/time-select";
 import { cn } from "@/lib/utils";
 import { formatDuration, formatPYG } from "@/lib/format";
-import { STATUS_LABELS, STATUS_STYLES } from "@/lib/appointments/status";
+import { START_EARLY_MINUTES, STATUS_LABELS, STATUS_STYLES } from "@/lib/appointments/status";
+import { PAYMENT_METHOD_LABELS } from "@/lib/clients/schemas";
+import { FinishPanel } from "@/components/appointments/finish-panel";
 import type { AgendaAppointment } from "@/lib/agenda/data";
 import {
+  finishAppointment,
   getDayAvailability,
+  recordPayment,
   rescheduleAppointment,
   setAppointmentStatus,
   updateAppointmentNotes,
+  voidPayment,
   type AppointmentActionResult,
   type DayAvailability,
 } from "@/lib/agenda/actions";
@@ -53,7 +59,7 @@ type AppointmentDetailProps = {
   onChanged: (message: string, highlightId?: string, goToDate?: string) => void;
 };
 
-type Panel = "none" | "cancel" | "reschedule";
+type Panel = "none" | "cancel" | "reschedule" | "finish" | "pay";
 type FollowUp = { kind: "cancelled" | "rescheduled"; date: string; time: string } | null;
 
 const CANCEL_REASONS = ["Lo pidió el cliente", "No puedo atender", "Se enfermó"];
@@ -65,12 +71,31 @@ export function AppointmentDetail({ appointment: a, businessName, timeZone, toda
   const [followUp, setFollowUp] = useState<FollowUp>(null);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState(a.notes ?? "");
+  const [confirmVoid, setConfirmVoid] = useState(false);
 
-  // ¿Ya empezó? ("Finalizar" y "No vino" solo desde la hora de inicio.)
+  // ¿Cuánto falta para la hora del turno? (negativo = ya empezó)
   const nowLocal = localParts(new Date(), timeZone);
-  const started = a.date < nowLocal.ymd || (a.date === nowLocal.ymd && nowLocal.minutes >= a.startMin);
+  const startsIn =
+    a.date === nowLocal.ymd ? a.startMin - nowLocal.minutes : a.date < nowLocal.ymd ? -Infinity : Infinity;
+  const started = startsIn <= 0;
+  // Por venir (todavía no se inició).
   const open = (a.status === "pending" || a.status === "confirmed") && !a.rescheduledTo;
+  const inProgress = a.status === "in_progress" && !a.rescheduledTo;
+  // "Iniciar": el día del turno, desde una hora antes (por si el cliente llega antes).
+  const canStart = open && a.date === nowLocal.ymd && startsIn <= START_EARLY_MINUTES;
   const closed = (a.status === "completed" || a.status === "no_show" || a.status === "cancelled") && !a.rescheduledTo;
+
+  // Finalizar = cobrar: el recuadro devuelve el error (o null) para mostrarlo ahí mismo.
+  const submitPayment =
+    (kind: "finish" | "pay") =>
+    async (method: "cash" | "transfer" | null, amount: number | null) => {
+      const result =
+        kind === "finish" ? await finishAppointment(a.id, method, amount) : await recordPayment(a.id, method!, amount!);
+      if (!result.ok) return result.error;
+      setPanel("none");
+      onChanged(result.message, a.id);
+      return null;
+    };
 
   const messageData = { clientName: a.clientName, serviceName: a.serviceName, date: a.date, time: a.start, businessName, today };
   const confirmLink = whatsAppLink(a.clientPhone, messages.confirmation(messageData));
@@ -94,9 +119,11 @@ export function AppointmentDetail({ appointment: a, businessName, timeZone, toda
             {a.rescheduledTo ? (
               <Chip style="rescheduled">Reprogramado → {a.rescheduledTo}</Chip>
             ) : (
-              <Chip style={a.status}>{STATUS_LABELS[a.status]}</Chip>
+              <Chip style={a.status}>
+                {STATUS_LABELS[a.status]}
+                {inProgress && a.startedAt && ` · desde las ${a.startedAt}`}
+              </Chip>
             )}
-            {a.date === today && open && started && <Chip style="in_progress">Ahora</Chip>}
             {a.online && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-primary">
                 <Globe className="size-3" /> Reservado online
@@ -117,6 +144,57 @@ export function AppointmentDetail({ appointment: a, businessName, timeZone, toda
             </span>
           </p>
           {a.cancelReason && <p className="text-sm text-muted-foreground">Motivo: {a.cancelReason}</p>}
+          {/* Cobro (un solo cobro por turno) */}
+          {a.status === "completed" && !a.rescheduledTo && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              {a.payment ? (
+                <>
+                  <span className="text-success">
+                    Cobrado <span className="font-mono tabular">{formatPYG(a.payment.amount)}</span> ·{" "}
+                    {PAYMENT_METHOD_LABELS[a.payment.method]}
+                  </span>
+                  {confirmVoid ? (
+                    <span className="flex items-center gap-2 text-xs">
+                      ¿Anular este cobro?
+                      <button
+                        type="button"
+                        disabled={pending}
+                        className="font-medium text-destructive hover:underline"
+                        onClick={() =>
+                          run(() => voidPayment(a.payment!.id), (r) => {
+                            setConfirmVoid(false);
+                            onChanged(r.message, a.id);
+                          })
+                        }
+                      >
+                        Sí, anular
+                      </button>
+                      <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setConfirmVoid(false)}>
+                        No
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setConfirmVoid(true)}
+                    >
+                      Anular cobro
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="text-warning">Sin cobrar</span>
+                  {panel !== "pay" && (
+                    <button type="button" className="text-xs text-primary hover:underline" onClick={() => setPanel("pay")}>
+                      Registrar cobro
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
           {a.rescheduledToDate && (
             <Link href={agendaHref(a.rescheduledToDate, view)} className="flex items-center gap-1 text-sm text-primary hover:underline">
               Ver turno nuevo <ArrowRight className="size-3.5" />
@@ -216,6 +294,19 @@ export function AppointmentDetail({ appointment: a, businessName, timeZone, toda
           />
         )}
 
+        {/* Finalizar = cobrar */}
+        {panel === "finish" && (
+          <FinishPanel price={a.price} allowSkip onSubmit={submitPayment("finish")} onCancel={() => setPanel("none")} />
+        )}
+        {panel === "pay" && (
+          <FinishPanel
+            price={a.price}
+            title="Registrar cobro"
+            onSubmit={submitPayment("pay")}
+            onCancel={() => setPanel("none")}
+          />
+        )}
+
         {/* Paneles de cancelar / reprogramar */}
         {panel === "cancel" && (
           <CancelPanel
@@ -262,20 +353,40 @@ export function AppointmentDetail({ appointment: a, businessName, timeZone, toda
       </div>
 
       {/* Acciones */}
-      {panel === "none" && (open || closed) && (
+      {panel === "none" && (open || inProgress || closed) && (
         <div className="flex flex-col gap-2 border-t px-5 py-4">
+          {inProgress && (
+            <>
+              <Button onClick={() => setPanel("finish")} disabled={pending}>
+                <CheckCheck /> Finalizar cita
+              </Button>
+              <button
+                type="button"
+                className="self-center text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => run(() => setAppointmentStatus(a.id, "confirmed"))}
+              >
+                Deshacer inicio
+              </button>
+            </>
+          )}
           {open && (
             <>
               <div className="grid grid-cols-2 gap-2">
-                {started ? (
+                {canStart ? (
                   <>
-                    <Button onClick={() => run(() => setAppointmentStatus(a.id, "completed"))} disabled={pending}>
-                      {pending ? <Loader2 className="animate-spin" /> : <CheckCheck />} Finalizar
+                    <Button className={cn(!started && "col-span-2")} onClick={() => run(() => setAppointmentStatus(a.id, "in_progress"))} disabled={pending}>
+                      {pending ? <Loader2 className="animate-spin" /> : <Play />} Iniciar cita
                     </Button>
-                    <Button variant="outline" onClick={() => run(() => setAppointmentStatus(a.id, "no_show"))} disabled={pending}>
-                      <UserX /> No vino
-                    </Button>
+                    {started && (
+                      <Button variant="outline" onClick={() => setPanel("finish")} disabled={pending}>
+                        <CheckCheck /> Finalizar
+                      </Button>
+                    )}
                   </>
+                ) : started ? (
+                  <Button className="col-span-2" onClick={() => setPanel("finish")} disabled={pending}>
+                    <CheckCheck /> Finalizar cita
+                  </Button>
                 ) : a.status === "pending" ? (
                   <Button className="col-span-2" onClick={() => run(() => setAppointmentStatus(a.id, "confirmed"))} disabled={pending}>
                     {pending ? <Loader2 className="animate-spin" /> : <ThumbsUp />} Confirmar
@@ -290,15 +401,26 @@ export function AppointmentDetail({ appointment: a, businessName, timeZone, toda
                   <XCircle /> Cancelar turno
                 </Button>
               </div>
-              {started && a.status === "pending" && (
-                <button
-                  type="button"
-                  className="self-center text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => run(() => setAppointmentStatus(a.id, "confirmed"))}
-                >
-                  Marcar como confirmado
-                </button>
-              )}
+              <div className="flex items-center justify-center gap-4">
+                {started && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => run(() => setAppointmentStatus(a.id, "no_show"))}
+                  >
+                    <UserX className="size-3.5" /> No vino
+                  </button>
+                )}
+                {(started || canStart) && a.status === "pending" && (
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => run(() => setAppointmentStatus(a.id, "confirmed"))}
+                  >
+                    Marcar como confirmado
+                  </button>
+                )}
+              </div>
             </>
           )}
           {closed && (

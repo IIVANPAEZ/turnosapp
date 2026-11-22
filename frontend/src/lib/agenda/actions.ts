@@ -7,6 +7,9 @@ import { getCurrentBusiness } from "@/lib/auth/dal";
 import { createClient } from "@/lib/supabase/server";
 import { getAgenda } from "./data";
 import { localParts, shortDayLabel, todayYMD } from "@/lib/time/zone";
+import { START_EARLY_MINUTES } from "@/lib/appointments/status";
+import { formatPYG } from "@/lib/format";
+import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/lib/clients/schemas";
 
 export type ClientOption = { id: string; name: string; phone: string | null };
 
@@ -228,6 +231,7 @@ async function loadAppointment(id: string) {
 
 const STATUS_DONE: Record<string, string> = {
   confirmed: "Turno confirmado.",
+  in_progress: "Turno iniciado.",
   completed: "Turno finalizado.",
   no_show: "Marcado como “No vino”.",
   cancelled: "Turno cancelado.",
@@ -237,7 +241,7 @@ const STATUS_DONE: Record<string, string> = {
 /** Confirmar, finalizar, no vino, cancelar o deshacer (volver a confirmado). */
 export async function setAppointmentStatus(
   id: string,
-  status: "pending" | "confirmed" | "completed" | "no_show" | "cancelled",
+  status: "pending" | "confirmed" | "in_progress" | "no_show" | "cancelled",
   cancelReason?: string,
 ): Promise<AppointmentActionResult> {
   if (!z.uuid().safeParse(id).success) return { ok: false, error: "Turno inválido." };
@@ -245,9 +249,20 @@ export async function setAppointmentStatus(
   if (!appt) return { ok: false, error: "No encontramos ese turno." };
   if (appt.rescheduled_to) return { ok: false, error: "Este turno fue reprogramado: cambiá el turno nuevo." };
 
-  // "Finalizar" y "No vino" solo desde la hora de inicio.
-  if ((status === "completed" || status === "no_show") && new Date(appt.starts_at).getTime() > Date.now()) {
-    return { ok: false, error: "Todavía no llegó la hora de este turno." };
+  const startsIn = (new Date(appt.starts_at).getTime() - Date.now()) / 60_000;
+  // "No vino" solo desde la hora de inicio; "Iniciar" hasta una hora antes (el cliente llegó antes).
+  if (status === "no_show" && startsIn > 0) return { ok: false, error: "Todavía no llegó la hora de este turno." };
+  if (status === "in_progress" && startsIn > START_EARLY_MINUTES) {
+    return { ok: false, error: `Se puede iniciar desde ${START_EARLY_MINUTES} minutos antes de la hora del turno.` };
+  }
+  // Deshacer un turno finalizado y cobrado: primero hay que anular el cobro.
+  if (appt.status === "completed") {
+    const { count } = await supabase
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("appointment_id", id)
+      .is("voided_at", null);
+    if (count) return { ok: false, error: "Este turno ya está cobrado: primero anulá el cobro." };
   }
 
   const { error } = await supabase.rpc("set_appointment_status", {
@@ -318,4 +333,88 @@ export async function updateAppointmentNotes(id: string, notes: string): Promise
   }
   revalidatePath("/dashboard", "layout");
   return { ok: true, message: "Nota guardada." };
+}
+
+// ---------------------------------------------------------------------------
+// Finalizar (con el cobro en el mismo paso) y cobros
+// ---------------------------------------------------------------------------
+
+const paymentInput = z.object({
+  id: z.uuid(),
+  method: z.enum(["cash", "transfer"]).nullable(),
+  amount: z.number().int().min(1).max(100_000_000).nullable(),
+});
+
+const PAYMENT_ERRORS: Record<string, string> = {
+  appointment_not_found: "No encontramos ese turno.",
+  payment_not_found: "No encontramos ese cobro.",
+  invalid_status: "Este turno está cancelado o marcado como “No vino”.",
+  not_started: "Todavía no llegó la hora de este turno. Si el cliente ya está, tocá “Iniciar”.",
+  invalid_amount: "Revisá el monto.",
+  already_paid: "Este turno ya tiene un cobro registrado.",
+  already_voided: "Ese cobro ya estaba anulado.",
+};
+
+function paymentError(where: string, error: { code?: string; message: string }) {
+  const known = PAYMENT_ERRORS[error.message];
+  if (!known) console.error(`[agenda] ${where}:`, error.code, error.message);
+  return { ok: false as const, error: known ?? "No pudimos guardar el cambio. Probá de nuevo." };
+}
+
+const paidLabel = (amount: number, method: PaymentMethod) =>
+  `${formatPYG(amount)} · ${PAYMENT_METHOD_LABELS[method].toLowerCase()}`;
+
+/** Finaliza el turno y registra cómo pagó (method null = "Finalizar sin cobrar"). */
+export async function finishAppointment(
+  id: string,
+  method: PaymentMethod | null,
+  amount: number | null,
+): Promise<AppointmentActionResult> {
+  const parsed = paymentInput.safeParse({ id, method, amount: method ? amount : null });
+  if (!parsed.success) return { ok: false, error: method ? "Revisá el monto." : "Turno inválido." };
+  await requireCurrent();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("finish_appointment", {
+    p_appointment_id: parsed.data.id,
+    p_method: parsed.data.method ?? undefined,
+    p_amount: parsed.data.amount ?? undefined,
+  });
+  if (error) return paymentError("finish_appointment", error);
+  revalidatePath("/dashboard", "layout");
+  return {
+    ok: true,
+    message: parsed.data.method
+      ? `Turno finalizado · cobrado ${paidLabel(parsed.data.amount!, parsed.data.method)}.`
+      : "Turno finalizado sin cobro.",
+  };
+}
+
+/** Cobrar un turno ya finalizado (por ejemplo, si se finalizó sin cobrar y pagó después). */
+export async function recordPayment(id: string, method: PaymentMethod, amount: number): Promise<AppointmentActionResult> {
+  const parsed = paymentInput.safeParse({ id, method, amount });
+  if (!parsed.success || !parsed.data.method || !parsed.data.amount) return { ok: false, error: "Revisá el monto." };
+  await requireCurrent();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_payment", {
+    p_appointment_id: parsed.data.id,
+    p_amount: parsed.data.amount,
+    p_method: parsed.data.method,
+  });
+  if (error) return paymentError("record_payment", error);
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, message: `Cobro registrado · ${paidLabel(parsed.data.amount, parsed.data.method)}.` };
+}
+
+/** Anula un cobro (queda en el historial; el turno vuelve a "sin cobrar"). */
+export async function voidPayment(paymentId: string, reason?: string): Promise<AppointmentActionResult> {
+  if (!z.uuid().safeParse(paymentId).success) return { ok: false, error: "Cobro inválido." };
+  await requireCurrent();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("void_payment", {
+    p_payment_id: paymentId,
+    p_reason: reason?.trim().slice(0, 200) || undefined,
+  });
+  if (error) return paymentError("void_payment", error);
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, message: "Cobro anulado." };
 }

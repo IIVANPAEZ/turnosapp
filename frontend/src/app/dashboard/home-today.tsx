@@ -8,7 +8,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import type { TodayAppointment } from "@/lib/appointments/status";
 import type { AgendaDay } from "@/lib/agenda/data";
-import { setAppointmentStatus } from "@/lib/agenda/actions";
+import { finishAppointment, setAppointmentStatus } from "@/lib/agenda/actions";
 import { AppointmentDetail } from "./agenda/appointment-detail";
 import { NewAppointmentForm, type ServiceOption } from "./agenda/new-appointment-form";
 
@@ -45,6 +45,7 @@ export function HomeToday({ day, dateLabel, timeZone, today, businessName, servi
     serviceName: a.serviceName,
     status: a.status,
     rescheduledTo: a.rescheduledTo,
+    price: a.price,
   }));
 
   const sheetClass = cn("gap-0 p-0", isMobile ? "max-h-[94dvh] rounded-t-2xl" : "w-full sm:max-w-md");
@@ -66,6 +67,12 @@ export function HomeToday({ day, dateLabel, timeZone, today, businessName, servi
         onCreate={() => setCreating(true)}
         onAction={async (id, status) => {
           const result = await setAppointmentStatus(id, status);
+          if (!result.ok) return result.error;
+          setNotice(result.message);
+          return null;
+        }}
+        onFinish={async (id, method, amount) => {
+          const result = await finishAppointment(id, method, amount);
           if (!result.ok) return result.error;
           setNotice(result.message);
           return null;

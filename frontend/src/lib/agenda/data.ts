@@ -44,6 +44,10 @@ export type AgendaAppointment = {
   rescheduledToDate: string | null;
   /** Lo reservó el cliente desde la página pública. */
   online: boolean;
+  /** Hora real de inicio "HH:mm" (si se tocó "Iniciar"). */
+  startedAt: string | null;
+  /** Cobro vigente (un solo cobro por turno). */
+  payment: { id: string; amount: number; method: "cash" | "transfer" } | null;
 };
 
 export type AgendaBlock = { startMin: number; endMin: number; label: string; allDay: boolean };
@@ -84,7 +88,7 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
   let apptQuery = supabase
     .from("appointments")
     .select(
-      "id, member_id, starts_at, ends_at, status, service_name, price, price_type, notes, cancel_reason, rescheduled_to, source, client:clients (id, full_name, phone), member:business_members (color, display_name)",
+      "id, member_id, starts_at, ends_at, status, service_name, price, price_type, notes, cancel_reason, rescheduled_to, source, started_at, client:clients (id, full_name, phone), member:business_members (color, display_name), payments (id, amount, method, voided_at)",
     )
     .eq("business_id", current.business.id)
     .gte("starts_at", rangeStart.toISOString())
@@ -159,8 +163,15 @@ export const getAgenda = cache(async (from: string, days: number): Promise<Agend
       rescheduledTo: a.rescheduled_to ? (movedTo.get(a.rescheduled_to)?.label ?? "otra fecha") : null,
       rescheduledToDate: a.rescheduled_to ? (movedTo.get(a.rescheduled_to)?.date ?? null) : null,
       online: a.source === "online",
+      startedAt: a.started_at ? localParts(new Date(a.started_at), tz).hhmm : null,
+      payment: (() => {
+        const p = a.payments.find((x) => !x.voided_at);
+        return p ? { id: p.id, amount: p.amount, method: p.method } : null;
+      })(),
     };
-    const occupies = !a.rescheduled_to && (a.status === "pending" || a.status === "confirmed" || a.status === "completed");
+    const occupies =
+      !a.rescheduled_to &&
+      (a.status === "pending" || a.status === "confirmed" || a.status === "in_progress" || a.status === "completed");
     (occupies ? day.appointments : day.inactive).push(appt);
   }
 
