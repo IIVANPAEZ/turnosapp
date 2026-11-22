@@ -64,7 +64,13 @@ async function PublicContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
         </section>
       ) : (
         <BookingFlow
-          slug={business.slug}
+          business={{
+            name: business.name,
+            slug: business.slug,
+            timezone: business.timezone,
+            whatsapp: business.whatsapp,
+            place: [business.address, business.city].filter(Boolean).join(" · ") || null,
+          }}
           services={services}
           today={todayYMD(business.timezone)}
           maxDays={business.maxDays}
