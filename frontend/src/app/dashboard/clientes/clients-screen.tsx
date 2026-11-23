@@ -153,7 +153,7 @@ export function ClientsScreen({ clients, initialOpenId, today, seesEveryone, ser
                     onClick={() => setSort(value)}
                     className={cn(
                       "h-7 rounded-md px-2.5 text-xs transition-colors",
-                      sort === value ? "bg-raised font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                      sort === value ? "bg-segment font-medium text-foreground shadow-[var(--segment-shadow)]" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {label}

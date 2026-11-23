@@ -18,9 +18,9 @@ import { agendaHref } from "./agenda-toolbar";
 const SLOT = 30;
 
 /** Rayado diagonal para lo que está cerrado (igual que en Horarios). */
-const CLOSED_PATTERN = "repeating-linear-gradient(-45deg, transparent 0 6px, rgb(220 230 240 / 0.05) 6px 7px)";
+const CLOSED_PATTERN = "repeating-linear-gradient(-45deg, transparent 0 6px, var(--hatch) 6px 7px)";
 /** Rayado ámbar para los bloqueos. */
-const BLOCK_PATTERN = "repeating-linear-gradient(-45deg, rgb(245 197 107 / 0.10) 0 6px, transparent 6px 12px)";
+const BLOCK_PATTERN = "repeating-linear-gradient(-45deg, var(--hatch-warning) 0 6px, transparent 6px 12px)";
 
 function subscribeMinute(cb: () => void) {
   const id = setInterval(cb, 60_000);

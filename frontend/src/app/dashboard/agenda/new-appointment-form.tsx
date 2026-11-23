@@ -373,7 +373,7 @@ export function NewAppointmentForm({
                 onClick={() => setStatus(value)}
                 className={cn(
                   "rounded-md px-2 py-1.5 transition-colors",
-                  status === value ? "bg-raised font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                  status === value ? "bg-segment font-medium text-foreground shadow-[var(--segment-shadow)]" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {label}

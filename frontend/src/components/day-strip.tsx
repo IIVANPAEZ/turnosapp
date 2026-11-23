@@ -73,7 +73,7 @@ function subscribeMinute(callback: () => void) {
 
 /** Rayado diagonal para las horas cerradas. */
 const CLOSED_PATTERN =
-  "repeating-linear-gradient(-45deg, transparent 0 5px, rgb(220 230 240 / 0.045) 5px 6px)";
+  "repeating-linear-gradient(-45deg, transparent 0 5px, var(--hatch) 5px 6px)";
 
 export function DayStrip({
   items = [],
@@ -126,7 +126,7 @@ export function DayStrip({
           <span
             key={`${r.start}-${r.end}`}
             // Ámbar oscuro sólido: tapa el rayado de "cerrado" para que el contraste sea claro.
-            className="absolute inset-y-0 flex items-center justify-center overflow-hidden border-x border-primary/45 bg-[color-mix(in_oklab,var(--ambar)_20%,var(--carbon-hondo))]"
+            className="absolute inset-y-0 flex items-center justify-center overflow-hidden border-x border-primary/45 bg-[color-mix(in_oklab,var(--primary)_20%,var(--inset))]"
             style={{ left: `${pct(toMinutes(r.start))}%`, width: `${pct(toMinutes(r.end)) - pct(toMinutes(r.start))}%` }}
             aria-hidden={!rangeLabels}
           >

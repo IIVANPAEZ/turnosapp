@@ -127,7 +127,7 @@ export function AgendaToolbar({
               className={cn(
                 "rounded-md px-4 py-1.5 text-center transition-colors",
                 view === value
-                  ? "bg-raised font-medium text-foreground"
+                  ? "bg-segment font-medium text-foreground shadow-[var(--segment-shadow)]"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >

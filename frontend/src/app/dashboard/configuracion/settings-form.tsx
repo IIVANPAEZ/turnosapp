@@ -287,7 +287,7 @@ export function SettingsForm({ business, canEdit }: SettingsFormProps) {
 
       {/* Barra flotante: aparece con cambios sin guardar o al confirmar el guardado. */}
       {canEdit && (isDirty || savedAt || formError) && (
-        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-xl border bg-popover/95 p-3 shadow-[0_16px_40px_-16px_rgb(0_0_0/0.9)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:pl-4">
+        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-xl border bg-popover/95 p-3 shadow-[0_16px_40px_-16px_var(--shadow-strong)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:pl-4">
           <p className={cn("flex items-center gap-2 text-sm", formError ? "text-destructive" : "text-muted-foreground")}>
             {formError ? (
               <>

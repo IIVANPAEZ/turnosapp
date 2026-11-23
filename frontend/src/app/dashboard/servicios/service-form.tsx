@@ -127,7 +127,7 @@ export function ServiceForm({ service, onDone, onCancel }: ServiceFormProps) {
                         className={cn(
                           "rounded-md px-2.5 py-1 transition-colors",
                           field.value === value
-                            ? "bg-raised font-medium text-foreground"
+                            ? "bg-segment font-medium text-foreground shadow-[var(--segment-shadow)]"
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >

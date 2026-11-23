@@ -81,7 +81,7 @@ export function AgendaScreen({ toolbar, days, view, timeZone, services, today, b
         size="icon-lg"
         aria-label="Nuevo turno"
         onClick={() => openNew(defaultDate)}
-        className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-[0_10px_30px_-8px_rgb(242_169_59/0.7)] sm:hidden"
+        className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-[0_10px_30px_-8px_color-mix(in_oklab,var(--primary)_70%,transparent)] sm:hidden"
       >
         <Plus className="size-6" />
       </Button>

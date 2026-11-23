@@ -17,7 +17,7 @@ export default function OnboardingPage() {
         <Brand />
         <Steps />
       </div>
-      <div className="w-full max-w-xl rounded-2xl border bg-card/80 p-6 shadow-[0_24px_60px_-30px_rgb(0_0_0/0.8)] backdrop-blur-sm sm:p-8">
+      <div className="w-full max-w-xl rounded-2xl border bg-card/80 p-6 shadow-[0_24px_60px_-30px_var(--shadow-strong)] backdrop-blur-sm sm:p-8">
         {/* Lee la sesión: con cacheComponents tiene que ir dentro de Suspense. */}
         <Suspense fallback={<OnboardingSkeleton />}>
           <OnboardingContent />

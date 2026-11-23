@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, LogOut, Settings } from "lucide-react";
+import { Download, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -24,6 +26,13 @@ import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth/actions";
 import { canOfferInstall, promptInstall, useInstall } from "@/components/pwa/install-store";
 import { IosInstallSteps } from "@/components/pwa/ios-install-steps";
+import { setThemePref, useThemePref, type ThemePref } from "@/components/theme/use-theme";
+
+const THEMES: { value: ThemePref; label: string; icon: React.ElementType }[] = [
+  { value: "claro", label: "Claro", icon: Sun },
+  { value: "oscuro", label: "Oscuro", icon: Moon },
+  { value: "auto", label: "Automático", icon: Monitor },
+];
 
 type AccountMenuProps = {
   name: string;
@@ -35,6 +44,7 @@ type AccountMenuProps = {
 /** Menú de la cuenta (al tocar la inicial): instalar la app, configuración y cerrar sesión. */
 export function AccountMenu({ name, roleLabel, businessName, color }: AccountMenuProps) {
   const install = useInstall();
+  const theme = useThemePref();
   const [iosHelp, setIosHelp] = useState(false);
   const initial = name.trim().charAt(0).toUpperCase() || "?";
 
@@ -68,6 +78,17 @@ export function AccountMenu({ name, roleLabel, businessName, color }: AccountMen
               <Download /> Instalar app
             </DropdownMenuItem>
           )}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Tema</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={theme} onValueChange={(v) => setThemePref(v as ThemePref)}>
+              {THEMES.map((t) => (
+                <DropdownMenuRadioItem key={t.value} value={t.value} closeOnClick={false}>
+                  <t.icon /> {t.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
           <DropdownMenuItem render={<Link href="/dashboard/configuracion" />}>
             <Settings /> Configuración
           </DropdownMenuItem>

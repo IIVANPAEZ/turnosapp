@@ -291,7 +291,7 @@ export function WeekEditor({ memberId, initialWeek, canEdit, timeZone, today }: 
 
       {/* Barra flotante de guardado */}
       {canEdit && (dirty || savedAt || error) && (
-        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-xl border bg-popover/95 p-3 shadow-[0_16px_40px_-16px_rgb(0_0_0/0.9)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:pl-4">
+        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-xl border bg-popover/95 p-3 shadow-[0_16px_40px_-16px_var(--shadow-strong)] backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:pl-4">
           <p className={cn("flex items-center gap-2 text-sm", error || hasProblems ? "text-destructive" : "text-muted-foreground")}>
             {error ? (
               <>

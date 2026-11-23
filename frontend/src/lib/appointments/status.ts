@@ -36,7 +36,7 @@ export const STATUS_STYLES: Record<AppointmentStatus | "rescheduled" | "in_progr
   completed: "bg-success-soft text-success",
   cancelled: "bg-destructive/10 text-destructive",
   no_show: "bg-warning-soft text-warning",
-  rescheduled: "bg-[rgb(125_211_252/0.12)] text-now",
+  rescheduled: "bg-now-soft text-now",
   in_progress: "bg-primary text-primary-foreground",
 };
 

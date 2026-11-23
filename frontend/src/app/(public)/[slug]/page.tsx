@@ -86,7 +86,7 @@ function BusinessHeader({ business: b, contact }: { business: PublicBusiness; co
   return (
     <header className="flex flex-col gap-4">
       <div className="flex items-center gap-4">
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-2xl font-semibold text-primary-foreground shadow-[0_8px_30px_-10px_rgb(242_169_59/0.7)]">
+        <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-2xl font-semibold text-primary-foreground shadow-[0_8px_30px_-10px_color-mix(in_oklab,var(--primary)_70%,transparent)]">
           {b.name.trim().charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0">

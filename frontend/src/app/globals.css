@@ -6,7 +6,9 @@
 
 /*
  * TurnosApp · sistema visual
- * Dirección: oscuro grafito + acento ámbar ("tierra colorada al atardecer").
+ * Dos temas: oscuro grafito + acento ámbar ("tierra colorada al atardecer") y
+ * claro "papel" + acento azul. El tema lo aplica un script en <head> (clase
+ * .dark o .light en <html>) según la elección del usuario o el dispositivo.
  * Tipografía: Space Grotesk (interfaz y títulos) + JetBrains Mono (horas y montos).
  * Profundidad: capas por luminosidad + bordes de baja opacidad (sin sombras fuertes).
  * Detalles en .interface-design/system.md
@@ -30,6 +32,8 @@
   --color-warning-soft: var(--warning-soft);
   --color-now: var(--now);
   --color-primary-soft: var(--primary-soft);
+  --color-now-soft: var(--now-soft);
+  --color-segment: var(--segment);
 
   /* Tokens de shadcn */
   --color-sidebar-ring: var(--sidebar-ring);
@@ -70,8 +74,80 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* La app es solo oscura: el mismo set aplica a :root y a .dark. */
-:root,
+/* ---------- Tema claro ("papel" + azul) ---------- */
+:root {
+  color-scheme: light;
+
+  /* --- Paleta base --- */
+  --papel: #f5f6f8;         /* fondo */
+  --papel-hondo: #eceef2;   /* hundido: campos (un poco más oscuro que lo de alrededor) */
+  --papel-1: #ffffff;       /* tarjetas */
+  --papel-2: #eef1f5;       /* ítem activo, chips */
+  --tinta: #15181c;         /* texto principal */
+  --tinta-2: #353b43;       /* texto secundario fuerte */
+  --grafito: #5b6470;       /* texto de apoyo */
+  --gris: #8a929c;          /* metadatos, placeholders */
+  --azul: #2563eb;          /* acento único */
+  --coral-ahora: #e8590c;   /* marca de "ahora" (no se confunde con el azul) */
+
+  /* --- Tokens propios --- */
+  --inset: var(--papel-hondo);
+  --raised: var(--papel-2);
+  --faint: var(--gris);
+  --line-strong: rgb(15 23 42 / 0.16);
+  --success: #15803d;
+  --success-soft: rgb(21 128 61 / 0.10);
+  --warning: #b45309;
+  --warning-soft: rgb(217 119 6 / 0.12);
+  --now: var(--coral-ahora);
+  --primary-soft: rgb(37 99 235 / 0.10);
+  --now-soft: rgb(232 89 12 / 0.10);
+  --shadow-strong: rgb(15 23 42 / 0.18);
+  --hatch: rgb(15 23 42 / 0.05);
+  --hatch-warning: rgb(217 119 6 / 0.10);
+  --glow-1: rgb(37 99 235 / 0.12);
+  --glow-2: rgb(232 89 12 / 0.05);
+  --selection: rgb(37 99 235 / 0.2);
+  /* Opción elegida en controles segmentados (Día/Semana, pestañas…) */
+  --segment: #ffffff;
+  --segment-shadow: 0 1px 2px rgb(15 23 42 / 0.10), 0 0 0 1px rgb(15 23 42 / 0.06);
+
+  /* --- Tokens de shadcn --- */
+  --background: var(--papel);
+  --foreground: var(--tinta);
+  --card: var(--papel-1);
+  --card-foreground: var(--tinta);
+  --popover: var(--papel-1);
+  --popover-foreground: var(--tinta);
+  --primary: var(--azul);
+  --primary-foreground: #ffffff;
+  --secondary: var(--papel-2);
+  --secondary-foreground: var(--tinta-2);
+  --muted: var(--papel-2);
+  --muted-foreground: var(--grafito);
+  --accent: var(--papel-2);
+  --accent-foreground: var(--tinta);
+  --destructive: #dc2626;
+  --border: rgb(15 23 42 / 0.09);
+  --input: rgb(15 23 42 / 0.14);
+  --ring: var(--azul);
+  --chart-1: var(--azul);
+  --chart-2: #0ea5e9;
+  --chart-3: #16a34a;
+  --chart-4: #7c3aed;
+  --chart-5: var(--grafito);
+  --radius: 0.625rem;
+  --sidebar: var(--papel);
+  --sidebar-foreground: var(--tinta);
+  --sidebar-primary: var(--azul);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--papel-2);
+  --sidebar-accent-foreground: var(--tinta);
+  --sidebar-border: rgb(15 23 42 / 0.09);
+  --sidebar-ring: var(--azul);
+}
+
+/* ---------- Tema oscuro (grafito + ámbar) ---------- */
 .dark {
   color-scheme: dark;
 
@@ -99,6 +175,16 @@
   --warning-soft: rgb(245 197 107 / 0.12);
   --now: var(--celeste-ahora);
   --primary-soft: rgb(242 169 59 / 0.12);
+  --now-soft: rgb(125 211 252 / 0.12);
+  /* Sombras, tramas y resplandores (antes escritos a mano en los componentes) */
+  --shadow-strong: rgb(0 0 0 / 0.85);
+  --hatch: rgb(220 230 240 / 0.05);
+  --hatch-warning: rgb(245 197 107 / 0.10);
+  --glow-1: rgb(242 169 59 / 0.22);
+  --glow-2: rgb(125 211 252 / 0.06);
+  --selection: rgb(242 169 59 / 0.3);
+  --segment: var(--carbon-2);
+  --segment-shadow: 0 0 #0000;
 
   /* --- Tokens de shadcn --- */
   --background: var(--carbon);
@@ -146,7 +232,7 @@
     @apply font-sans;
   }
   ::selection {
-    background: rgb(242 169 59 / 0.3);
+    background: var(--selection);
   }
 }
 
@@ -155,11 +241,11 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
-  /* Resplandor ámbar de las pantallas de marca (login, landing). */
+  /* Resplandor del acento en las pantallas de marca (login, landing, página pública). */
   .glow-ambar {
     background:
-      radial-gradient(120% 80% at 0% 0%, rgb(242 169 59 / 0.22) 0%, transparent 60%),
-      radial-gradient(90% 60% at 100% 100%, rgb(125 211 252 / 0.06) 0%, transparent 70%),
-      var(--carbon);
+      radial-gradient(120% 80% at 0% 0%, var(--glow-1) 0%, transparent 60%),
+      radial-gradient(90% 60% at 100% 100%, var(--glow-2) 0%, transparent 70%),
+      var(--background);
   }
 }

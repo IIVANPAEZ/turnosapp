@@ -6,10 +6,12 @@
 ## Dirección
 
 - **Quién lo usa:** cualquier negocio o profesional que trabaja con turnos en Paraguay (barbería, consultorio, estudio de tatuajes, taller, profesor particular, etc.). Los textos de la interfaz son **generales**: nunca "para belleza y salud". Abren la app **en el celular**, entre un cliente y otro, para ver *cómo viene el día*. Viven en WhatsApp.
-- **Cómo se siente:** oscuro, moderno y **unisex**. Ordenado y tranquilo, con un solo punto de calor (el ámbar). Nada de rosa ni ciruela: el usuario los descartó por "muy de mujer".
+- **Cómo se siente:** moderno y **unisex**, con dos temas (oscuro grafito + ámbar, claro "papel" + azul). Ordenado y tranquilo, con un solo punto de calor (el ámbar). Nada de rosa ni ciruela: el usuario los descartó por "muy de mujer".
 - **Origen de la paleta:** la *tierra colorada* al atardecer (ámbar) sobre una mesa de trabajo oscura (grafito).
 
 ## Colores (tokens)
+
+Hay **dos temas** con los mismos nombres de tokens: **oscuro** (`.dark`, la tabla de abajo) y **claro** (`:root`, ver "Tema claro"). Ningún componente usa hex ni variables de un tema en particular (`--carbon`, `--ambar`…): solo tokens.
 
 Usar **siempre** las clases de Tailwind de los tokens; nunca hex sueltos ni `slate-*`, `white`, `emerald-*`.
 
@@ -37,7 +39,28 @@ Usar **siempre** las clases de Tailwind de los tokens; nunca hex sueltos ni `sla
 - Un solo acento. El ámbar significa *acción o estado activo*, no decoración.
 - La jerarquía de superficies se hace con **luminosidad** (inset < background < card < raised), saltos chicos.
 - Los colores de los profesionales (`MEMBER_COLORS` en `src/lib/business/members.ts`) son datos del usuario: solo en avatares y bloques de la tira del día.
-- La app es **solo oscura** (`<html class="dark">`, `color-scheme: dark`).
+- Sombras, tramas y resplandores también son tokens: `--shadow-strong`, `--hatch`, `--hatch-warning`, `--glow-1/2` (`.glow-ambar`), `--selection`; las sombras de color usan `color-mix(in_oklab,var(--primary)_60%,transparent)`.
+- **Opción elegida en controles segmentados** (Día/Semana, pestañas En curso/Próximos, períodos, orden): `bg-segment shadow-[var(--segment-shadow)]` (oscuro: = `raised`, sin sombra; claro: blanco con sombra suave).
+
+### Tema claro ("papel" + azul)
+
+| Rol | Token | Claro |
+|---|---|---|
+| Fondo | `bg-background` | `#f5f6f8` |
+| Hundido (campos, bandejas) | `bg-inset` | `#eceef2` |
+| Tarjetas / menús | `bg-card`, `bg-popover` | `#ffffff` |
+| Ítem activo, chips | `bg-raised` | `#eef1f5` |
+| Texto principal / secundario / apoyo / metadatos | | `#15181c` / `#353b43` / `#5b6470` / `#8a929c` |
+| **Acento** | `bg-primary` | azul `#2563eb` (texto encima blanco) |
+| Acento suave | `bg-primary-soft` | azul 10% |
+| Marca de "ahora" | `bg-now` | **coral** `#e8590c` (no se confunde con el azul) |
+| Éxito / Atención / Error | | `#15803d` / `#b45309` / `#dc2626` |
+| Bordes | `border` / `border-line-strong` | tinta 9% / 16% |
+
+### Cómo se elige el tema
+- Menú de la cuenta → **Claro · Oscuro · Automático** (por defecto Automático = sigue al sistema). Se guarda en el dispositivo (`localStorage` `turnosapp:tema`).
+- Un script en el `<head>` (`src/components/theme/theme-script.ts`) pone `.dark` o `.light` en `<html>` **antes de dibujar** (sin parpadeo) y sigue los cambios del sistema en Automático. La variante `dark:` de Tailwind depende de `.dark`.
+- La página pública sigue el dispositivo del cliente. El ícono de la app instalada queda ámbar (marca).
 
 ## Tipografía
 

@@ -266,7 +266,7 @@ function TimeOffForm({
               onClick={() => setAllDay(value)}
               className={cn(
                 "rounded-md py-1.5 transition-colors",
-                allDay === value ? "bg-raised font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                allDay === value ? "bg-segment font-medium text-foreground shadow-[var(--segment-shadow)]" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {label}

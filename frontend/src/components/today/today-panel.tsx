@@ -375,7 +375,7 @@ function PanelTab({
   return (
     <TabsTrigger
       value={value}
-      className="h-full gap-1.5 rounded-md text-[13px] data-active:bg-raised data-active:text-foreground data-active:shadow-none"
+      className="h-full gap-1.5 rounded-md text-[13px] data-active:bg-segment data-active:text-foreground data-active:shadow-[var(--segment-shadow)]"
     >
       {label}
       <span

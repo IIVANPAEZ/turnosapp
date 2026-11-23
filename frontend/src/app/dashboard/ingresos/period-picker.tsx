@@ -32,7 +32,7 @@ export function PeriodPicker({ current, from, to, rangeLabel }: { current: Perio
             aria-selected={current === key}
             className={cn(
               "flex h-8 items-center rounded-md px-3 text-sm transition-colors",
-              current === key ? "bg-raised font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+              current === key ? "bg-segment font-medium text-foreground shadow-[var(--segment-shadow)]" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {PERIOD_LABELS[key]}

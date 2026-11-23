@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import { APP_NAME } from "@/lib/config";
 import { OfflineBanner } from "@/components/pwa/offline-banner";
+import { THEME_COLORS, THEME_SCRIPT } from "@/components/theme/theme-script";
 import "./globals.css";
 
 // Interfaz y títulos: geométrica, con carácter pero muy legible en el celular.
@@ -25,15 +26,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#121417",
-  colorScheme: "dark",
+  // Barra del navegador según el tema del sistema (el script del <head> la ajusta si se eligió otro).
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+  ],
+  colorScheme: "light dark",
   // Usa toda la pantalla del iPhone; cada barra fija respeta env(safe-area-inset-*).
   viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`dark ${grotesk.variable} ${jetbrains.variable} h-full antialiased`}>
+    // suppressHydrationWarning: el script del <head> agrega .dark/.light antes de React.
+    <html lang="es" className={`${grotesk.variable} ${jetbrains.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Tema (claro / oscuro / automático) aplicado antes de dibujar: sin parpadeo. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full">
         <OfflineBanner />
         {children}

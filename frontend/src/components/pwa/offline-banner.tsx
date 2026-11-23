@@ -15,7 +15,7 @@ export function OfflineBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] md:bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center gap-2.5 rounded-xl bg-warning px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_12px_32px_-12px_rgb(0_0_0/0.9)]"
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] md:bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center gap-2.5 rounded-xl bg-warning px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_12px_32px_-12px_var(--shadow-strong)]"
     >
       <WifiOff className="size-4 shrink-0" />
       Sin conexión. Lo que hagas se envía solo cuando vuelva la señal.
