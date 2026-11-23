@@ -7,7 +7,7 @@ import { DEFAULT_TIMEZONE } from "@/lib/config";
 /**
  * "La tira del día": el día de trabajo como una franja horizontal, con los
  * turnos como bloques del color de cada profesional y una marca de "ahora".
- * Es el elemento propio del diseño de TurnosApp (inicio, agenda, horarios).
+ * Es el elemento propio del diseño de TurnoPy (inicio, agenda, horarios).
  *
  * Con `openRanges`, las horas cerradas se ven rayadas y las abiertas lisas.
  */

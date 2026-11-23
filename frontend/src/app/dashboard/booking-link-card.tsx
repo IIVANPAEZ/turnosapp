@@ -9,7 +9,7 @@ import { markBookingLinkShared } from "@/lib/business/actions";
 type BookingLinkCardProps = {
   businessName: string;
   slug: string;
-  /** Lo que se muestra: "turnosapp.com/mi-negocio" */
+  /** Lo que se muestra: "turnopy.com/mi-negocio" */
   displayUrl: string;
   status: { tone: "live" | "paused" | "setup"; text: string };
   shared: boolean;

@@ -1,4 +1,4 @@
-# TurnosApp — Backend (legado + WhatsApp)
+# TurnoPy — Backend (legado + WhatsApp)
 
 > **Estado:** la API REST en memoria (pacientes, doctores, servicios, turnos) es **legado** y se va a reemplazar por Supabase. Lo que se mantiene es la integración de WhatsApp con `whatsapp-web.js`, que se adaptará para que cada profesional conecte su propio número.
 

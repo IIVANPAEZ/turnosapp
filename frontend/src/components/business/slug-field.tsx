@@ -9,7 +9,7 @@ import { checkSlugAvailability, type SlugAvailability } from "@/lib/business/act
 import { slugProblem } from "@/lib/business/slug";
 
 /**
- * Campo de la dirección pública (turnosapp.com/<slug>) con verificación en vivo.
+ * Campo de la dirección pública (turnopy.com/<slug>) con verificación en vivo.
  * Lo usan el onboarding y la configuración del negocio.
  */
 

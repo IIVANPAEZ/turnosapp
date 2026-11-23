@@ -1,4 +1,4 @@
-# TurnosApp · Sistema de diseño
+# TurnoPy · Sistema de diseño
 
 > Fuente de verdad para pantallas nuevas. Los valores viven en `src/app/globals.css`;
 > este archivo explica **por qué** y **cómo usarlos**.
@@ -139,7 +139,7 @@ Escala usada: título de página `text-2xl`–`text-3xl` · título de tarjeta `
 - **Barra de secciones abajo** (`BottomNav`, solo `<md`): mismo fondo que el sidebar (`bg-sidebar`) con `border-t`, alto 64px + `env(safe-area-inset-bottom)`. 5 pestañas: ícono en una pastilla `h-7 w-12 rounded-full` (activa `bg-primary-soft` + ícono ámbar) y etiqueta `text-[11px]`. "Más" abre un `Sheet` desde abajo con las demás secciones (filas `h-12`) y Cerrar sesión. Es parte del flujo del layout (no flota): el contenido termina arriba; lo que flota (botón "+", aviso sin conexión) se sube con `bottom-[calc(…+env(safe-area-inset-bottom))]`.
 - **Encabezado en el celular:** logo ámbar `size-8 rounded-lg` + título; sin menú de tres líneas.
 - **Menú de la cuenta:** la inicial abre un `DropdownMenu` (nombre · rol · negocio, Instalar app, Configuración, Cerrar sesión).
-- **"Instalá TurnosApp":** tarjeta `bg-card` con ícono `Smartphone` en `bg-primary-soft`, botón Instalar ámbar (o los pasos de iPhone numerados en círculos `bg-raised`), ✕ "Ahora no".
+- **"Instalá TurnoPy":** tarjeta `bg-card` con ícono `Smartphone` en `bg-primary-soft`, botón Instalar ámbar (o los pasos de iPhone numerados en círculos `bg-raised`), ✕ "Ahora no".
 - **Sin conexión:** pastilla `bg-warning` con texto oscuro, flotando abajo y centrada (no tapa el encabezado).
 - **Error / No encontrada:** centrado, ícono en cuadrado (`bg-warning-soft` para error, `border bg-card` para no encontrada), título `text-xl`, acción principal ámbar ("Reintentar" / "Ir a mi panel") + secundaria ghost.
 - **Elegir día en la página pública (vista por semana):** flechas `size-10 rounded-lg border bg-card` a los lados del título ("Esta semana", "La semana que viene", "Semana del 30 nov" + rango), y 7 celdas `grid-cols-7` (día corto / número `text-lg` / cantidad libre en mono verde o "—"); elegida `border-primary/70 bg-primary-soft`; pasadas o fuera de rango apagadas.

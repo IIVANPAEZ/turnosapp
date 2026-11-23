@@ -1,5 +1,5 @@
 /**
- * Reglas del "slug" (dirección pública del negocio: turnosapp.com/<slug>).
+ * Reglas del "slug" (dirección pública del negocio: turnopy.com/<slug>).
  * IMPORTANTE: deben coincidir con private.is_valid_slug() en la migración
  * supabase/migrations/20261120193638_init_core.sql. La base es la autoridad;
  * esto solo sirve para avisar al usuario sin esperar al servidor.

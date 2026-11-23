@@ -1,6 +1,6 @@
-# TurnosApp
+# TurnoPy
 
-> Nombre de trabajo. Se cambia en `frontend/src/lib/config.ts` (`APP_NAME`, y `PUBLIC_SITE_DOMAIN` para el dominio de las páginas públicas).
+> Marca: **TurnoPy** (antes "TurnosApp", nombre de trabajo). Se define en `frontend/src/lib/config.ts` (`APP_NAME`, y `PUBLIC_SITE_DOMAIN` para el dominio de las páginas públicas). Pendiente: dominio propio y consulta de marca en la DINAPI. La carpeta, el repo y las claves internas del navegador (`turnosapp:…`) conservan el nombre viejo a propósito.
 
 SaaS de gestión de turnos para cualquier negocio o profesional que trabaje con citas (peluquerías, consultorios, estudios, talleres, clases, etc.). Mercado inicial: Paraguay (español, guaraníes PYG, zona horaria `America/Asuncion`).
 
@@ -189,7 +189,7 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 - **Ingresos** (`/dashboard/ingresos`, solo dueño/admin): período (hoy, semana, mes, mes anterior o fechas), cobrado vs. período anterior, turnos atendidos, ticket promedio, falta cobrar (con "Cobrar" ahí mismo), gráfico por día, desgloses por forma de pago, servicio y profesional, % no vino, clientes nuevos, % reservas online y lista de cobros. **Inicio:** tira "Hoy cobraste ₲ … · Falta cobrar ₲ …".
 
 ### Sprint 6 — qué incluye
-- **App instalable:** manifiesto (solo en el panel y el acceso), íconos con el logo (Android, iPhone, favicon), "Instalá TurnosApp" en Inicio ("Ahora no" la oculta 30 días) e "Instalar app" en el menú de la cuenta; en iPhone, los pasos de Compartir → Agregar a inicio.
+- **App instalable:** manifiesto (solo en el panel y el acceso), íconos con el logo (Android, iPhone, favicon), "Instalá TurnoPy" en Inicio ("Ahora no" la oculta 30 días) e "Instalar app" en el menú de la cuenta; en iPhone, los pasos de Compartir → Agregar a inicio.
 - **Sin conexión:** pastilla "Sin conexión…" abajo y reintento automático.
 - **Celular como app:** barra fija abajo (Inicio · Agenda · Clientes · Ingresos · Más), bordes del iPhone (safe-area), alto real de pantalla (`dvh`).
 - **Pantallas de carga, error (Reintentar) y "No encontrada"**, también en la página pública.

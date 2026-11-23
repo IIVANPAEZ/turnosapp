@@ -1,5 +1,7 @@
 "use client"; // Reemplaza al layout raíz si falla: trae su propio <html> y estilos.
 
+import { APP_NAME } from "@/lib/config";
+
 /**
  * Último recurso si falla el layout raíz. No tiene los estilos globales,
  * así que los colores van escritos acá (mismos tokens: grafito + ámbar).
@@ -20,11 +22,11 @@ export default function GlobalError({ retry }: { error: unknown; retry: () => vo
           padding: "1rem",
         }}
       >
-        <title>Algo salió mal · TurnosApp</title>
+        <title>{`Algo salió mal · ${APP_NAME}`}</title>
         <div style={{ maxWidth: 360 }}>
           <h1 style={{ fontSize: 20, margin: "0 0 8px" }}>Algo salió mal</h1>
           <p style={{ fontSize: 14, color: "#9aa0a6", margin: "0 0 20px" }}>
-            No pudimos abrir TurnosApp. Revisá tu conexión y probá de nuevo.
+            No pudimos abrir {APP_NAME}. Revisá tu conexión y probá de nuevo.
           </p>
           <button
             type="button"

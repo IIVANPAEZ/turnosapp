@@ -27,11 +27,11 @@ export function buildIcs(e: IcsEvent): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//TurnosApp//Reservas//ES",
+    "PRODID:-//TurnoPy//Reservas//ES",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${e.uid}@turnosapp`,
+    `UID:${e.uid}@turnopy`,
     `DTSTAMP:${stamp(new Date())}`,
     `DTSTART:${stamp(start)}`,
     `DTEND:${stamp(end)}`,

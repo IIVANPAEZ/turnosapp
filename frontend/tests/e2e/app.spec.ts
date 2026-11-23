@@ -5,7 +5,7 @@ test("app instalable desde el login (manifiesto e íconos)", async ({ page, requ
   await page.goto("/login");
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/app.webmanifest");
   const manifest = await (await request.get("/app.webmanifest")).json();
-  expect(manifest).toMatchObject({ name: "TurnosApp", start_url: "/dashboard", display: "standalone" });
+  expect(manifest).toMatchObject({ name: "TurnoPy", start_url: "/dashboard", display: "standalone" });
   for (const icon of manifest.icons as { src: string }[]) {
     expect((await request.get(icon.src)).ok()).toBe(true);
   }

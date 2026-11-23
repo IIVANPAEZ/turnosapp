@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth/actions";
+import { APP_NAME } from "@/lib/config";
 import { canOfferInstall, promptInstall, useInstall } from "@/components/pwa/install-store";
 import { IosInstallSteps } from "@/components/pwa/ios-install-steps";
 import { setThemePref, useThemePref, type ThemePref } from "@/components/theme/use-theme";
@@ -103,7 +104,7 @@ export function AccountMenu({ name, roleLabel, businessName, color }: AccountMen
       <AlertDialog open={iosHelp} onOpenChange={setIosHelp}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Instalá TurnosApp en tu iPhone</AlertDialogTitle>
+            <AlertDialogTitle>Instalá {APP_NAME} en tu iPhone</AlertDialogTitle>
             <AlertDialogDescription>Se abre como una app, desde tu pantalla de inicio.</AlertDialogDescription>
           </AlertDialogHeader>
           <IosInstallSteps />

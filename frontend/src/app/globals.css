@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * TurnosApp · sistema visual
+ * TurnoPy · sistema visual
  * Dos temas: oscuro grafito + acento ámbar ("tierra colorada al atardecer") y
  * claro "papel" + acento azul. El tema lo aplica un script en <head> (clase
  * .dark o .light en <html>) según la elección del usuario o el dispositivo.

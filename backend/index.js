@@ -26,5 +26,5 @@ app.use("/whatsapp", whatsappRouter);
 seed();
 
 app.listen(PORT, () => {
-  console.log(`TurnosApp API corriendo en http://localhost:${PORT}`);
+  console.log(`TurnoPy API corriendo en http://localhost:${PORT}`);
 });

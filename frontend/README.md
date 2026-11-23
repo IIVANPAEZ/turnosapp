@@ -1,4 +1,4 @@
-# TurnosApp — Web
+# TurnoPy — Web
 
 Next.js 16 (App Router) + TypeScript + Tailwind CSS 4 + shadcn/ui (preset `base-nova`, sobre Base UI).
 

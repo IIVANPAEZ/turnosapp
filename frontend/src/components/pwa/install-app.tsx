@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { Download, Smartphone, X } from "lucide-react";
+import { APP_NAME } from "@/lib/config";
 import { canOfferInstall, dismissInstallCard, isInstallCardDismissed, promptInstall, useInstall } from "./install-store";
 import { IosInstallSteps } from "./ios-install-steps";
 
 /**
- * Inicio → "Instalá TurnosApp": botón del navegador en Android y computadora;
+ * Inicio → "Instalá TurnoPy": botón del navegador en Android y computadora;
  * en iPhone, cómo agregarla desde Compartir. No aparece si ya está instalada.
  * "Ahora no" la esconde 30 días (sigue disponible en el menú de la cuenta).
  */
@@ -23,7 +24,7 @@ export function InstallApp() {
           <Smartphone className="size-5" />
         </div>
         <div className="min-w-0 flex-1 pr-6 sm:pr-0">
-          <h3 className="text-sm font-medium">Instalá TurnosApp en tu celular</h3>
+          <h3 className="text-sm font-medium">Instalá {APP_NAME} en tu celular</h3>
           <p className="mt-0.5 text-sm text-muted-foreground">Se abre como una app, desde tu pantalla de inicio.</p>
         </div>
       </div>

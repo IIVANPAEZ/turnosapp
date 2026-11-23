@@ -8,7 +8,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        // TurnosApp: campo "hundido" (bg-inset), 40px de alto para tocar cómodo en el celular.
+        // TurnoPy: campo "hundido" (bg-inset), 40px de alto para tocar cómodo en el celular.
         "h-10 w-full min-w-0 rounded-lg border border-input bg-inset px-3 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-faint hover:border-line-strong focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/25 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive/60 aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm",
         className
       )}
