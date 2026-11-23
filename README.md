@@ -114,6 +114,28 @@ cd frontend && npm run db:types
 ```
 `supabase db advisors --remote` revisa problemas de seguridad y rendimiento.
 
+## Publicar en Vercel
+
+La web se publica en Vercel (región São Paulo `gru1`, junto a la base en Supabase `sa-east-1`; ver `frontend/vercel.json`). Cada push a `main` se publica solo; cada rama tiene su propia dirección de prueba (usa la misma base de Supabase).
+
+1. **vercel.com → Add New → Project →** importar el repo de GitHub.
+2. **Root Directory:** `frontend` (el repo también tiene `backend/`). Framework: Next.js (se detecta solo).
+3. **Environment Variables** (Production y Preview):
+   | Variable | Valor |
+   |---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | la misma de `.env.local` |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | la misma de `.env.local` (la **publishable**, nunca la secret) |
+   | `NEXT_PUBLIC_SITE_URL` | `https://turnopy.vercel.app` (o el dominio propio) |
+4. **Deploy.** En Settings → Domains, la dirección de producción queda como `turnopy.vercel.app` si el nombre del proyecto es `turnopy` y está libre.
+5. **Supabase → Authentication → URL Configuration:**
+   - **Site URL:** `https://turnopy.vercel.app`
+   - **Redirect URLs:** `https://turnopy.vercel.app/**`, `http://localhost:3000/**` y, para las direcciones de prueba de Vercel, `https://*-<tu-equipo>.vercel.app/**`.
+6. **Supabase → Authentication → Passwords:** activar la protección contra contraseñas filtradas (si el plan la incluye).
+
+Con dominio propio: agregarlo en Vercel (Settings → Domains), cambiar `NEXT_PUBLIC_SITE_URL` y volver a publicar, y actualizar Site URL / Redirect URLs en Supabase.
+
+**Seguridad en producción:** `next.config.ts` agrega `frame-ancestors 'none'` / `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` y HSTS. No hay CSP completa con *nonces* a propósito: obligaría a generar cada página en el momento (se perdería la carga instantánea).
+
 ## Configuración del panel de Supabase
 
 La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supabase/config.toml` solo aplica a un entorno local y hoy tiene valores distintos: **no correr `supabase config push`** sin revisar antes `supabase config diff --remote`, porque pisaría esta configuración.
@@ -202,7 +224,6 @@ La configuración de Auth **vive en el panel de Supabase, no en el repo**. `supa
 - Antes de producción: confirmación de email + SMTP propio + templates en español; activar la protección contra contraseñas filtradas (Auth → Passwords).
 - Feriados trasladables (1 de marzo, 12 de junio, 29 de setiembre): confirmar cada año la fecha que fija el gobierno.
 - Agregar personal (varios profesionales) y qué servicios hace cada uno: post-MVP; las tablas ya lo contemplan. Al hacerlo: restringir en RLS que el personal vea solo sus turnos y sumar al dueño un selector "Todos / Mis turnos / <profesional>" en la agenda.
-- Antes de producción: encabezados de seguridad HTTP (`X-Frame-Options`/`frame-ancestors`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) en `next.config.ts`.
 - `npm audit`: 4 avisos moderados de `minimatch` dentro de la CLI de shadcn (solo se usa al compilar los estilos; no corre en la app).
 - Ingresos sueltos (venta de productos) y cobros parciales: decididos para más adelante.
 - "Deshacer inicio" vuelve el turno a Confirmado pero conserva la primera hora de inicio guardada.

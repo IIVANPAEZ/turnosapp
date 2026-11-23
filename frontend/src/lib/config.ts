@@ -6,7 +6,11 @@ export const DEFAULT_CURRENCY = "PYG";
 export const DEFAULT_LOCALE = "es-PY";
 
 /**
- * Dominio que se muestra para la página pública de cada negocio
- * (ej. turnopy.com/salon-ana). Provisorio hasta tener dominio real.
+ * Dirección pública de la app (NEXT_PUBLIC_SITE_URL en Vercel / .env.local),
+ * ej. "https://turnopy.vercel.app". Cuando haya dominio propio, se cambia
+ * solo la variable.
  */
-export const PUBLIC_SITE_DOMAIN = "turnopy.com";
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://turnopy.vercel.app").replace(/\/+$/, "");
+
+/** Lo que se muestra antes del link de cada negocio (ej. "turnopy.vercel.app/salon-ana"). */
+export const PUBLIC_SITE_DOMAIN = SITE_URL.replace(/^https?:\/\//, "");

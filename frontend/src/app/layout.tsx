@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Space_Grotesk } from "next/font/google";
-import { APP_NAME } from "@/lib/config";
+import { APP_NAME, SITE_URL } from "@/lib/config";
 import { OfflineBanner } from "@/components/pwa/offline-banner";
 import { THEME_COLORS, THEME_SCRIPT } from "@/components/theme/theme-script";
 import "./globals.css";
@@ -19,6 +19,8 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  // Base para los links absolutos (vista previa al compartir en WhatsApp, Instagram…).
+  metadataBase: new URL(SITE_URL),
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
   description: "Gestión de turnos para cualquier negocio que trabaje con citas.",
   // iPhone: "Agregar a inicio" la abre a pantalla completa (ícono: app/apple-icon.png).
